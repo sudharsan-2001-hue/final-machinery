@@ -1,0 +1,262 @@
+.buy-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  min-height: 100vh;
+}
+
+.buy-main {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.buy-layout-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 28px;
+}
+
+/* Left side gallery card */
+.buy-product-gallery {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  justify-content: center;
+}
+
+.buy-category-badge {
+  position: absolute;
+  top: 36px;
+  right: 36px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 10;
+}
+
+.buy-main-image {
+  height: 250px;
+  object-fit: cover;
+  width: 100%;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.stock-info-tag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #fca5a5;
+  font-weight: 600;
+}
+
+.stock-dot {
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: pulseSuccess 2s infinite;
+}
+
+/* Right side config card */
+.buy-config-details {
+  padding: 35px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.buy-product-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.25;
+}
+
+.buy-product-description {
+  font-size: 14.5px;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+.buy-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  width: 100%;
+}
+
+.buy-pricing-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.buy-price-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.buy-price-label {
+  font-size: 13px;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.buy-price-label.text-green {
+  color: #4ade80;
+}
+
+.buy-price-value {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.buy-price-value.original {
+  text-decoration: line-through;
+  color: #64748b;
+}
+
+.buy-price-value.offer {
+  font-size: 24px;
+  font-weight: 800;
+  color: #22c55e;
+}
+
+/* Quantity Selection */
+.buy-quantity-selector-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qty-label {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.qty-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.qty-counter-box {
+  display: flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 4px;
+  overflow: hidden;
+}
+
+.qty-btn {
+  background: none;
+  border: none;
+  width: 38px;
+  height: 38px;
+  font-size: 18px;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.qty-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.qty-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.qty-number-display {
+  width: 44px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.stock-level-indicator {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.qty-error-message {
+  font-size: 12.5px;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+/* Subtotal Display */
+.buy-summary-subtotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.subtotal-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.subtotal-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: #22c55e;
+}
+
+.buy-proceed-checkout-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.checkout-btn-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s ease;
+}
+
+.buy-proceed-checkout-btn:hover .checkout-btn-icon {
+  transform: translateX(4px);
+}
+
+@media (max-width: 900px) {
+  .buy-layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
