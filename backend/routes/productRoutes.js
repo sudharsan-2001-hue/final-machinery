@@ -34,7 +34,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/", authenticate, requireAdmin, async (req, res) => {
+router.post("/", authenticate, async (req, res) => {
   const { name, description, originalPrice, offerPrice, stock, category, image } = req.body;
 
   if (!name || !description || originalPrice == null || offerPrice == null || stock == null || !category) {

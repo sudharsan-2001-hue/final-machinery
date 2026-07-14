@@ -14,7 +14,7 @@ function mapUser(row) {
     id: row.UserID,
     email: row.Email,
     phone: row.PhoneNumber,
-    fullName: row.FullName,
+    fullName: row.Username,
     role: (row.Role || "").toLowerCase(),
   };
 }
@@ -114,19 +114,19 @@ async function register(req, res) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const username = `${fullName.trim().replace(/\s+/g, '')}${Date.now()}`;
 
     const result = await pool
       .request()
       .input("email", sql.NVarChar, normalizedEmail)
       .input("password", sql.NVarChar, hashedPassword)
       .input("phone", sql.NVarChar, normalizedPhone)
-      .input("fullName", sql.NVarChar, fullName.trim())
-      .input("username", sql.NVarChar, normalizedEmail.split('@')[0])
+      .input("username", sql.NVarChar, username)
       .input("role", sql.NVarChar, role)
       .query(`
-        INSERT INTO Users (Username, Email, Password, PhoneNumber, FullName, Role, Status, CreatedDate)
-        OUTPUT INSERTED.UserID, INSERTED.Email, INSERTED.PhoneNumber, INSERTED.FullName, INSERTED.Role
-        VALUES (@username, @email, @password, @phone, @fullName, @role, 'Active', GETDATE())
+        INSERT INTO Users (Username, Email, Password, PhoneNumber, Role, Status, CreatedDate)
+        OUTPUT INSERTED.UserID, INSERTED.Email, INSERTED.PhoneNumber, INSERTED.Username, INSERTED.Role
+        VALUES (@username, @email, @password, @phone, @role, 'Active', GETDATE())
       `);
 
     const userData = mapUser(result.recordset[0]);
@@ -182,18 +182,18 @@ async function registerSeller(req, res) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const username = `${fullName.trim().replace(/\s+/g, '')}${Date.now()}`;
 
     const result = await pool
       .request()
       .input("email", sql.NVarChar, normalizedEmail)
       .input("password", sql.NVarChar, hashedPassword)
       .input("phone", sql.NVarChar, normalizedPhone)
-      .input("fullName", sql.NVarChar, fullName.trim())
-      .input("username", sql.NVarChar, normalizedEmail.split('@')[0])
+      .input("username", sql.NVarChar, username)
       .query(`
-        INSERT INTO Users (Username, Email, Password, PhoneNumber, FullName, Role, Status, CreatedDate)
-        OUTPUT INSERTED.UserID, INSERTED.Email, INSERTED.PhoneNumber, INSERTED.FullName, INSERTED.Role
-        VALUES (@username, @email, @password, @phone, @fullName, 'Customer', 'Active', GETDATE())
+        INSERT INTO Users (Username, Email, Password, PhoneNumber, Role, Status, CreatedDate)
+        OUTPUT INSERTED.UserID, INSERTED.Email, INSERTED.PhoneNumber, INSERTED.Username, INSERTED.Role
+        VALUES (@username, @email, @password, @phone, 'Seller', 'Active', GETDATE())
       `);
 
     const userData = mapUser(result.recordset[0]);
@@ -309,7 +309,7 @@ async function getProfile(req, res) {
       .request()
       .input("userId", sql.Int, req.user.id)
       .query(`
-        SELECT UserID, Email, PhoneNumber, FullName, Role, Status
+        SELECT UserID, Email, PhoneNumber, Username, Role, Status
         FROM Users WHERE UserID = @userId
       `);
 

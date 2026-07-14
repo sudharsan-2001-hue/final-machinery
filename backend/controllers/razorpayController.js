@@ -43,13 +43,15 @@ async function createRazorpayOrder(req, res) {
     const razorpayInstance = getRazorpayInstance();
     const order = await razorpayInstance.orders.create(options);
 
-    res.json({
-      id: order.id,
-      currency: order.currency,
-      amount: order.amount,
-      receipt: order.receipt,
-      status: order.status,
-    });
+   res.json({
+  success: true,
+  key: process.env.RAZORPAY_KEY_ID,
+  orderId: order.id,
+  amount: order.amount,
+  currency: order.currency,
+  receipt: order.receipt,
+  status: order.status,
+});
   } catch (err) {
     console.error("Razorpay order creation error:", err.message);
     res.status(500).json({ message: "Failed to create Razorpay order." });
@@ -65,12 +67,18 @@ async function verifyRazorpayPayment(req, res) {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      order_id,
-      amount,
+      userId,
+      addressId,
+      totalAmount,
+      item,
     } = req.body;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return res.status(400).json({ message: "Missing payment verification details." });
+    }
+
+    if (!userId || !addressId || !totalAmount || !item) {
+      return res.status(400).json({ message: "Missing order details." });
     }
 
     // Verify signature
@@ -91,16 +99,51 @@ async function verifyRazorpayPayment(req, res) {
       return res.status(400).json({ message: "Payment not successful." });
     }
 
-    // Store payment in database
     const pool = await poolPromise;
 
+    // Generate prefixed order number
+    const orderNumber = `ORD${Date.now()}`;
+
+    // Generate prefixed payment ID
+    const paymentId = `PAY${Date.now()}`;
+
+    // Create order first
+    const orderResult = await pool
+      .request()
+      .input("userId", sql.Int, userId)
+      .input("addressId", sql.Int, addressId)
+      .input("orderNumber", sql.NVarChar, orderNumber)
+      .input("totalAmount", sql.Decimal(18, 2), Number(totalAmount))
+      .input("paymentMethod", sql.NVarChar, "Razorpay")
+      .input("orderStatus", sql.NVarChar, "Processing")
+      .query(`
+        INSERT INTO Orders (UserID, AddressID, OrderNumber, TotalAmount, PaymentMethod, OrderStatus, OrderDate)
+        OUTPUT INSERTED.OrderID, INSERTED.OrderNumber, INSERTED.TotalAmount, INSERTED.OrderStatus
+        VALUES (@userId, @addressId, @orderNumber, @totalAmount, @paymentMethod, @orderStatus, GETDATE())
+      `);
+
+    const orderId = orderResult.recordset[0].OrderID;
+
+    // Insert order item
     await pool
       .request()
-      .input("orderId", sql.Int, order_id)
-      .input("razorpayOrderId", sql.NVarChar, razorpay_order_id)
-      .input("razorpayPaymentId", sql.NVarChar, razorpay_payment_id)
+      .input("orderId", sql.Int, orderId)
+      .input("productId", sql.Int, item.id)
+      .input("quantity", sql.Int, item.quantity)
+      .input("unitPrice", sql.Decimal(18, 2), Number(item.price))
+      .input("totalPrice", sql.Decimal(18, 2), Number(item.price) * Number(item.quantity))
+      .query(`
+        INSERT INTO OrderItems (OrderID, ProductID, Quantity, UnitPrice, TotalPrice, CreatedDate)
+        VALUES (@orderId, @productId, @quantity, @unitPrice, @totalPrice, GETDATE())
+      `);
+
+    // Store payment in database with prefixed payment ID
+    await pool
+      .request()
+      .input("orderId", sql.Int, orderId)
       .input("transactionId", sql.NVarChar, razorpay_payment_id)
-      .input("amount", sql.Decimal(18, 2), Number(amount))
+      .input("paymentId", sql.NVarChar, paymentId)
+      .input("amount", sql.Decimal(18, 2), Number(totalAmount))
       .input("paymentMethod", sql.NVarChar, "Razorpay")
       .input("paymentStatus", sql.NVarChar, "Completed")
       .query(`
@@ -108,20 +151,23 @@ async function verifyRazorpayPayment(req, res) {
         VALUES (@orderId, @transactionId, @paymentMethod, @paymentStatus, @amount, GETDATE())
       `);
 
-    // Update order payment status
+    // Update product stock
     await pool
       .request()
-      .input("orderId", sql.Int, order_id)
-      .input("orderStatus", sql.NVarChar, "Processing")
+      .input("productId", sql.Int, item.id)
+      .input("quantity", sql.Int, item.quantity)
       .query(`
-        UPDATE Orders 
-        SET OrderStatus = @orderStatus, UpdatedDate = GETDATE()
-        WHERE OrderID = @orderId
+        UPDATE MachineryProducts
+        SET StockQuantity = StockQuantity - @quantity,
+            Status = CASE WHEN StockQuantity - @quantity <= 0 THEN 'Out of Stock' ELSE 'Active' END,
+            UpdatedDate = GETDATE()
+        WHERE ProductID = @productId
       `);
 
     res.json({
       message: "Payment verified successfully.",
       paymentStatus: "Completed",
+      order: orderResult.recordset[0],
     });
   } catch (err) {
     console.error("Razorpay payment verification error:", err.message);

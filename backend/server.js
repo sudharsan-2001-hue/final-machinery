@@ -15,7 +15,6 @@ const addressRoutes = require("./routes/addressRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
-const razorpayRoutes = require("./routes/razorpayRoutes");
 const invoiceRoutes = require("./routes/invoiceRoutes");
 
 const app = express();
@@ -69,7 +68,6 @@ app.use("/api", addressRoutes);
 app.use("/api", orderRoutes);
 app.use("/api", adminRoutes);
 app.use("/api", paymentRoutes);
-app.use("/api/payments/razorpay", razorpayRoutes);
 app.use("/api", invoiceRoutes);
 
 app.use(notFoundHandler);
@@ -79,5 +77,5 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
-  
+  console.log("RAZORPAY_KEY_ID:", process.env.RAZORPAY_KEY_ID);
 });

@@ -88,9 +88,9 @@ function Payment() {
       }
 
       const razorpayOrder = await api.createRazorpayOrder(totalAmount, "INR");
-
+     console.log("Razorpay Order Response:", razorpayOrder);
       const options = {
-        key: razorpayOrder.keyId,
+        key: razorpayOrder.key,
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency,
         name: "Sudharsan Cottage Machinery",
@@ -121,7 +121,7 @@ function Payment() {
             localStorage.removeItem("scm_checkout");
             localStorage.setItem("scm_last_order", JSON.stringify(newOrder));
             showToast("Payment successful! Order confirmed.", "success");
-            navigate("/order");
+            navigate("/home");
           } catch (err) {
             setPaymentError(err.message || "Payment verified but order failed.");
             showToast(err.message || "Order failed after payment.", "error");

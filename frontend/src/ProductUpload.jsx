@@ -37,7 +37,22 @@ function ProductUpload() {
     e.preventDefault();
     setLoading(true);
     try {
-      // TODO: Implement API call to upload product
+      const offerPrice = formData.originalPrice * (1 - formData.discountPercent / 100);
+
+      await api.addProduct({
+        name: formData.productName,
+        categoryId: formData.categoryId,
+        description: formData.description,
+        originalPrice: formData.originalPrice,
+        offerPrice: offerPrice,
+        stock: 10,
+        category: formData.categoryId === "CAT001" ? "Cotton Ginning Machinery" :
+                 formData.categoryId === "CAT002" ? "Cotton Spinning Machinery" :
+                 formData.categoryId === "CAT003" ? "Machine Oils & Lubricants" :
+                 "Cotton Pressing Machinery",
+        image: formData.images.length > 0 ? formData.images[0].name : "",
+      });
+
       showToast("Product uploaded successfully!");
       navigate("/seller-dashboard");
     } catch (err) {

@@ -21,9 +21,9 @@ function SellerDashboard() {
   const loadDashboardStats = async () => {
     try {
       setLoading(true);
-      // TODO: Implement API call to fetch seller stats
+      const products = await api.getProducts();
       setStats({
-        totalProducts: 0,
+        totalProducts: products.length,
         totalOrders: 0,
         totalRevenue: 0,
         pendingOrders: 0,

@@ -2,8 +2,7 @@ const { sql, poolPromise } = require("../db");
 const { formatOrderResponse, formatAdminOrder } = require("../utils/mappers");
 
 function generateOrderNumber() {
-  const randomNum = Math.floor(100000 + Math.random() * 900000);
-  return `SCM-ORD-${randomNum}`;
+  return `ORD${Date.now()}`;
 }
 
 function isCodPayment(method) {
@@ -118,7 +117,7 @@ async function createOrderRecord(orderData) {
         VALUES (@orderId, @productId, @quantity, @unitPrice, @totalPrice, GETDATE())
       `);
 
-    const transactionId = paymentDetails.transactionId || paymentDetails.razorpayPaymentId || null;
+    const transactionId = paymentDetails.transactionId || paymentDetails.razorpayPaymentId || `PAY${Date.now()}`;
 
     await transaction
       .request()
