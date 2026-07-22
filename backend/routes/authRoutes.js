@@ -6,7 +6,8 @@ const router = express.Router();
 
 router.post("/login", authController.login);
 router.post("/register", authController.register);
-router.post("/register-seller", authController.registerSeller);
+// Seller registration disabled - single seller system
+// router.post("/register-seller", authController.registerSeller);
 router.post("/forgot-password", authController.forgotPassword);
 router.post("/change-password", authenticate, authController.changePassword);
 router.get("/profile", authenticate, authController.getProfile);

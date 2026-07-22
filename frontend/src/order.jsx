@@ -116,6 +116,7 @@ function Order() {
             <div className="shipping-col">
               <span className="billing-label">Delivery Specifications:</span>
               <p>Payment Mode: <strong>{order.paymentMethod}</strong></p>
+              {order.paymentId && <p>Payment ID: <strong>{order.paymentId}</strong></p>}
               <p>Shipment Status: <strong>Allocated / Dispatched</strong></p>
               <p>Expected Arrival Date: <strong className="arrival-date-highlight">{order.expectedDelivery}</strong></p>
             </div>
@@ -134,21 +135,39 @@ function Order() {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>
-                  <div className="table-item-desc">
-                    <img src={getProductImage(order.item.image)} alt={order.item.name} className="table-item-img print-hidden" />
-                    <div>
-                      <strong>{order.item.name}</strong>
-                      <p className="print-hidden">Heavy Industrial machinery series</p>
-                      <p style={{ fontSize: "11px", color: "#f59e0b", marginTop: "2px" }}>Weight: {order.item.weight || "N/A"}</p>
+              {Array.isArray(order.items) ? order.items.map((item, index) => (
+                <tr key={index}>
+                  <td>
+                    <div className="table-item-desc">
+                      <img src={getProductImage(item.image)} alt={item.name} className="table-item-img print-hidden" />
+                      <div>
+                        <strong>{item.name}</strong>
+                        <p className="print-hidden">Heavy Industrial machinery series</p>
+                        <p style={{ fontSize: "11px", color: "#f59e0b", marginTop: "2px" }}>Weight: {item.weight || "N/A"}</p>
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td className="text-center">₹{order.item.price.toLocaleString("en-IN")}</td>
-                <td className="text-center">{order.item.quantity}</td>
-                <td className="text-right">₹{(order.item.price * order.item.quantity).toLocaleString("en-IN")}</td>
-              </tr>
+                  </td>
+                  <td className="text-center">₹{(item.price || item.offerPrice).toLocaleString("en-IN")}</td>
+                  <td className="text-center">{item.quantity}</td>
+                  <td className="text-right">₹{((item.price || item.offerPrice) * item.quantity).toLocaleString("en-IN")}</td>
+                </tr>
+              )) : (
+                <tr>
+                  <td>
+                    <div className="table-item-desc">
+                      <img src={getProductImage(order.item.image)} alt={order.item.name} className="table-item-img print-hidden" />
+                      <div>
+                        <strong>{order.item.name}</strong>
+                        <p className="print-hidden">Heavy Industrial machinery series</p>
+                        <p style={{ fontSize: "11px", color: "#f59e0b", marginTop: "2px" }}>Weight: {order.item.weight || "N/A"}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="text-center">₹{order.item.price.toLocaleString("en-IN")}</td>
+                  <td className="text-center">{order.item.quantity}</td>
+                  <td className="text-right">₹{(order.item.price * order.item.quantity).toLocaleString("en-IN")}</td>
+                </tr>
+              )}
             </tbody>
           </table>
 
@@ -158,7 +177,7 @@ function Order() {
           <div className="invoice-calculations-summary">
             <div className="calc-row">
               <span>Subtotal Amount:</span>
-              <span>₹{(order.item.price * order.item.quantity).toLocaleString("en-IN")}</span>
+              <span>₹{order.totalAmount.toLocaleString("en-IN")}</span>
             </div>
             <div className="calc-row">
               <span>Freight Surcharge & Delivery:</span>

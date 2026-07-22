@@ -8,7 +8,15 @@ const { authenticate, requireAdmin } = require("../middleware/authMiddleware");
 router.get("/", async (req, res) => {
   try {
     const pool = await poolPromise;
-    const result = await pool.request().query(`${PRODUCT_SELECT} ORDER BY p.ProductID DESC`);
+    const shopId = req.query.shopId;
+    
+    let query = `${PRODUCT_SELECT}`;
+    if (shopId) {
+      query += ` WHERE p.ShopID = ${shopId}`;
+    }
+    query += ` ORDER BY p.ProductID DESC`;
+    
+    const result = await pool.request().query(query);
     res.json(result.recordset.map(mapProduct));
   } catch (err) {
     console.error("Get products error:", err.message);
@@ -35,7 +43,7 @@ router.get("/:id", async (req, res) => {
 });
 
 router.post("/", authenticate, async (req, res) => {
-  const { name, description, originalPrice, offerPrice, stock, category, image } = req.body;
+  const { name, description, originalPrice, offerPrice, stock, category, image, shopId } = req.body;
 
   if (!name || !description || originalPrice == null || offerPrice == null || stock == null || !category) {
     return res.status(400).json({ message: "All product fields are required." });
@@ -55,12 +63,13 @@ router.post("/", authenticate, async (req, res) => {
       .input("offerPrice", sql.Decimal(18, 2), Number(offerPrice))
       .input("stock", sql.Int, Number(stock))
       .input("image", sql.NVarChar, image || "")
+      .input("shopId", sql.Int, shopId || 1)
       .input("status", sql.NVarChar, status)
       .query(`
         INSERT INTO MachineryProducts
-          (CategoryID, MachineName, Description, OriginalPrice, OfferPrice, StockQuantity, MachineImage, Status, CreatedDate)
+          (CategoryID, MachineName, Description, OriginalPrice, OfferPrice, StockQuantity, MachineImage, ShopID, Status, CreatedDate)
         OUTPUT INSERTED.ProductID
-        VALUES (@categoryId, @name, @description, @originalPrice, @offerPrice, @stock, @image, @status, GETDATE())
+        VALUES (@categoryId, @name, @description, @originalPrice, @offerPrice, @stock, @image, @shopId, @status, GETDATE())
       `);
 
     const productId = result.recordset[0].ProductID;

@@ -69,12 +69,14 @@ function formatOrderResponse(order, items, customer, address) {
 function formatAdminOrder(order, items, customer) {
   const item = items[0] || {};
   return {
-    orderId: order.OrderNumber,
+    orderId: order.OrderID,
+    orderNumber: order.OrderNumber,
     orderDate: order.OrderDate
       ? new Date(order.OrderDate).toLocaleDateString("en-IN")
       : "",
     totalAmount: Number(order.TotalAmount),
     paymentMethod: order.PaymentMethod,
+    status: order.OrderStatus,
     customer: {
       name: customer?.FullName || customer?.Username || "",
       phone: customer?.PhoneNumber || "",

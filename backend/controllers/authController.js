@@ -146,67 +146,8 @@ async function register(req, res) {
 }
 
 async function registerSeller(req, res) {
-  const { email, password, phone, fullName } = req.body;
-
-  if (!email || !password || !phone || !fullName) {
-    return res.status(400).json({ message: "Email, phone, full name, and password are required." });
-  }
-
-  if (!isEmail(email)) {
-    return res.status(400).json({ message: "Enter a valid email address." });
-  }
-
-  if (!isPhone(phone)) {
-    return res.status(400).json({ message: "Enter a valid 10-digit Indian phone number." });
-  }
-
-  const pwdError = validatePassword(password);
-  if (pwdError) return res.status(400).json({ message: pwdError });
-
-  try {
-    const pool = await poolPromise;
-    const normalizedPhone = normalizePhone(phone);
-    const normalizedEmail = email.trim().toLowerCase();
-
-    const existing = await pool
-      .request()
-      .input("email", sql.NVarChar, normalizedEmail)
-      .input("phone", sql.NVarChar, normalizedPhone)
-      .query(`
-        SELECT UserID FROM Users
-        WHERE LOWER(Email) = LOWER(@email) OR PhoneNumber = @phone
-      `);
-
-    if (existing.recordset.length > 0) {
-      return res.status(409).json({ message: "Email or phone number already registered." });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const username = `${fullName.trim().replace(/\s+/g, '')}${Date.now()}`;
-
-    const result = await pool
-      .request()
-      .input("email", sql.NVarChar, normalizedEmail)
-      .input("password", sql.NVarChar, hashedPassword)
-      .input("phone", sql.NVarChar, normalizedPhone)
-      .input("username", sql.NVarChar, username)
-      .query(`
-        INSERT INTO Users (Username, Email, Password, PhoneNumber, Role, Status, CreatedDate)
-        OUTPUT INSERTED.UserID, INSERTED.Email, INSERTED.PhoneNumber, INSERTED.Username, INSERTED.Role
-        VALUES (@username, @email, @password, @phone, 'Seller', 'Active', GETDATE())
-      `);
-
-    const userData = mapUser(result.recordset[0]);
-    const token = signToken(userData);
-    res.status(201).json({
-      message: "Seller registration successful.",
-      user: userData,
-      token,
-    });
-  } catch (err) {
-    console.error("Seller register error:", err.message);
-    res.status(500).json({ message: "Server error during seller registration." });
-  }
+  // Seller registration disabled - single seller system
+  return res.status(403).json({ message: "Seller registration is disabled. This is a single seller system." });
 }
 
 async function forgotPassword(req, res) {

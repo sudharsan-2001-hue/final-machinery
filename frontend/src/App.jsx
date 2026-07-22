@@ -11,13 +11,16 @@ import Address from "./address";
 import Payment from "./payment";
 import Order from "./order";
 import OutOfStock from "./outofstock";
-import SellerDashboard from "./SellerDashboard";
-import ProductUpload from "./ProductUpload";
-import SellerOrders from "./SellerOrders";
 import Wishlist from "./Wishlist";
 import Cart from "./Cart";
 import Checkout from "./Checkout";
 import OrderTracking from "./OrderTracking";
+import AdminHome from "./adminhome";
+import AvailableStock from "./availablestock";
+import MachineryUpload from "./machineryupload";
+import ShopOrders from "./shoporders";
+import AdminComplaints from "./admincomplaints";
+import CustomerComplaints from "./customercomplaints";
 
 function App() {
   return (
@@ -28,7 +31,7 @@ function App() {
         <Route path="/change-password" element={<ChangePassword />} />
 
         {/* Customer Routes */}
-        <Route path="/home" element={<ProtectedRoute allowedRoles={["customer"]}><Home /></ProtectedRoute>} />
+        <Route path="/home" element={<ProtectedRoute allowedRoles={["customer", "shopadmin"]}><Home /></ProtectedRoute>} />
         <Route path="/price" element={<ProtectedRoute allowedRoles={["customer"]}><Price /></ProtectedRoute>} />
         <Route path="/buy" element={<ProtectedRoute allowedRoles={["customer"]}><Buy /></ProtectedRoute>} />
         <Route path="/outofstock" element={<ProtectedRoute allowedRoles={["customer"]}><OutOfStock /></ProtectedRoute>} />
@@ -38,12 +41,15 @@ function App() {
         <Route path="/wishlist" element={<ProtectedRoute allowedRoles={["customer"]}><Wishlist /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute allowedRoles={["customer"]}><Cart /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute allowedRoles={["customer"]}><Checkout /></ProtectedRoute>} />
-        <Route path="/order-tracking/:orderId" element={<ProtectedRoute allowedRoles={["customer"]}><OrderTracking /></ProtectedRoute>} />
+        <Route path="/order-tracking" element={<ProtectedRoute allowedRoles={["customer"]}><OrderTracking /></ProtectedRoute>} />
+        <Route path="/my-complaints" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerComplaints /></ProtectedRoute>} />
 
-        {/* Seller Routes */}
-        <Route path="/seller-dashboard" element={<ProtectedRoute allowedRoles={["seller"]}><SellerDashboard /></ProtectedRoute>} />
-        <Route path="/seller/upload-product" element={<ProtectedRoute allowedRoles={["seller"]}><ProductUpload /></ProtectedRoute>} />
-        <Route path="/seller/orders" element={<ProtectedRoute allowedRoles={["seller"]}><SellerOrders /></ProtectedRoute>} />
+        {/* Admin Routes */}
+        <Route path="/adminhome" element={<ProtectedRoute allowedRoles={["admin", "shopadmin"]}><AdminHome /></ProtectedRoute>} />
+        <Route path="/machineryupload" element={<ProtectedRoute allowedRoles={["admin", "shopadmin"]}><MachineryUpload /></ProtectedRoute>} />
+        <Route path="/availablestock" element={<ProtectedRoute allowedRoles={["admin", "shopadmin"]}><AvailableStock /></ProtectedRoute>} />
+        <Route path="/orders" element={<ProtectedRoute allowedRoles={["admin", "shopadmin"]}><ShopOrders /></ProtectedRoute>} />
+        <Route path="/complaints" element={<ProtectedRoute allowedRoles={["admin", "shopadmin"]}><AdminComplaints /></ProtectedRoute>} />
 
         {/* Fallback to Login */}
         <Route path="*" element={<Navigate to="/" replace />} />

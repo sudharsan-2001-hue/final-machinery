@@ -45,6 +45,7 @@ async function createOrderRecord(orderData) {
     totalAmount,
     paymentMethod,
     item,
+    shopId,
     paymentDetails = {},
   } = orderData;
 
@@ -58,7 +59,7 @@ async function createOrderRecord(orderData) {
   const transaction = new sql.Transaction(pool);
 
   const cod = isCodPayment(paymentMethod);
-  const orderStatus = paymentDetails.orderStatus || (cod ? "Pending" : "Processing");
+  const orderStatus = paymentDetails.orderStatus || (cod ? "Pending" : "Preparing");
   const paymentStatus = paymentDetails.paymentStatus || (cod ? "Pending" : "Completed");
 
   try {
@@ -67,7 +68,7 @@ async function createOrderRecord(orderData) {
     const stockCheck = await transaction
       .request()
       .input("productId", sql.Int, item.id)
-      .query("SELECT StockQuantity, MachineName FROM MachineryProducts WHERE ProductID = @productId");
+      .query("SELECT StockQuantity, MachineName, ShopID FROM MachineryProducts WHERE ProductID = @productId");
 
     const product = stockCheck.recordset[0];
     if (!product) {
@@ -86,7 +87,8 @@ async function createOrderRecord(orderData) {
     }
 
     const orderNumber = generateOrderNumber();
-    const unitPrice = Number(item.price);
+    const unitPrice = Number(item.price || item.offerPrice || item.originalPrice);
+    const finalShopId = shopId || product.ShopID || 1;
 
     const orderResult = await transaction
       .request()
@@ -96,10 +98,11 @@ async function createOrderRecord(orderData) {
       .input("totalAmount", sql.Decimal(18, 2), Number(totalAmount))
       .input("paymentMethod", sql.NVarChar, paymentMethod)
       .input("orderStatus", sql.NVarChar, orderStatus)
+      .input("shopId", sql.Int, finalShopId)
       .query(`
-        INSERT INTO Orders (UserID, AddressID, OrderNumber, TotalAmount, PaymentMethod, OrderStatus, OrderDate)
+        INSERT INTO Orders (UserID, AddressID, OrderNumber, TotalAmount, PaymentMethod, OrderStatus, ShopID, OrderDate)
         OUTPUT INSERTED.OrderID, INSERTED.OrderNumber, INSERTED.TotalAmount, INSERTED.PaymentMethod, INSERTED.OrderDate, INSERTED.OrderStatus
-        VALUES (@userId, @addressId, @orderNumber, @totalAmount, @paymentMethod, @orderStatus, GETDATE())
+        VALUES (@userId, @addressId, @orderNumber, @totalAmount, @paymentMethod, @orderStatus, @shopId, GETDATE())
       `);
 
     const order = orderResult.recordset[0];
@@ -129,6 +132,31 @@ async function createOrderRecord(orderData) {
       .query(`
         INSERT INTO Payments (OrderID, PaymentMethod, TransactionID, PaymentStatus, Amount, PaymentDate)
         VALUES (@orderId, @paymentMethod, @transactionId, @paymentStatus, @amount, GETDATE())
+      `);
+
+    const newStock = product.StockQuantity - qty;
+    const newStatus = newStock > 0 ? "Active" : "Out of Stock";
+
+    await transaction
+      .request()
+      .input("productId", sql.Int, item.id)
+      .input("newStock", sql.Int, newStock)
+      .input("newStatus", sql.NVarChar, newStatus)
+      .query(`
+        UPDATE MachineryProducts
+        SET StockQuantity = @newStock, Status = @newStatus, UpdatedDate = GETDATE()
+        WHERE ProductID = @productId
+      `);
+
+    await transaction
+      .request()
+      .input("productId", sql.Int, item.id)
+      .input("previousStock", sql.Int, product.StockQuantity)
+      .input("currentStock", sql.Int, newStock)
+      .input("remarks", sql.NVarChar, `Order ${orderNumber}`)
+      .query(`
+        INSERT INTO StockHistory (ProductID, PreviousStock, CurrentStock, ActionType, Remarks, CreatedDate)
+        VALUES (@productId, @previousStock, @currentStock, 'Sale', @remarks, GETDATE())
       `);
 
     await transaction.commit();
@@ -198,6 +226,54 @@ async function getAllOrders(req, res) {
   }
 }
 
+async function updateOrderStatus(req, res) {
+  try {
+    const { orderId } = req.params;
+    const { orderStatus } = req.body;
+
+    console.log("Update order status - orderId:", orderId, "type:", typeof orderId, "orderStatus:", orderStatus);
+
+    const validStatuses = ['Pending', 'Confirmed', 'Preparing', 'Delivered', 'Cancelled'];
+    if (!validStatuses.includes(orderStatus)) {
+      return res.status(400).json({ message: "Invalid order status." });
+    }
+
+    const numericOrderId = parseInt(orderId, 10);
+    if (isNaN(numericOrderId) || numericOrderId <= 0) {
+      return res.status(400).json({ message: "Invalid order ID." });
+    }
+
+    const pool = await poolPromise;
+    const result = await pool
+      .request()
+      .input("orderId", sql.Int, numericOrderId)
+      .input("orderStatus", sql.NVarChar, orderStatus)
+      .query(`
+        UPDATE Orders
+        SET OrderStatus = @orderStatus, UpdatedDate = GETDATE()
+        WHERE OrderID = @orderId
+      `);
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    const updated = await pool
+      .request()
+      .input("orderId", sql.Int, numericOrderId)
+      .query(`
+        SELECT OrderID, OrderNumber, OrderStatus, TotalAmount
+        FROM Orders
+        WHERE OrderID = @orderId
+      `);
+
+    res.json(updated.recordset[0]);
+  } catch (err) {
+    console.error("Update order status error:", err.message);
+    res.status(500).json({ message: "Failed to update order status." });
+  }
+}
+
 async function getUserOrders(req, res) {
   try {
     const userId = Number(req.params.userId);
@@ -233,24 +309,14 @@ async function getUserOrders(req, res) {
 
 async function createOrder(req, res) {
   try {
-    const userId = req.body.userId || req.user?.id;
-    if (req.user && req.user.id !== Number(userId)) {
-      return res.status(403).json({ message: "Cannot place order for another user." });
-    }
-
-    const orderResult = await createOrderRecord({
-      userId,
-      addressId: req.body.addressId,
-      totalAmount: req.body.totalAmount,
-      paymentMethod: req.body.paymentMethod,
-      item: req.body.item,
-    });
-
-    res.status(201).json(orderResult);
+    const orderData = req.body;
+    orderData.userId = req.user.id;
+    
+    const result = await createOrderRecord(orderData);
+    res.status(201).json(result);
   } catch (err) {
     console.error("Create order error:", err.message);
-    const status = err.status || 500;
-    res.status(status).json({ message: err.message || "Failed to place order." });
+    res.status(err.status || 500).json({ message: err.message || "Failed to create order." });
   }
 }
 
@@ -259,4 +325,5 @@ module.exports = {
   getAllOrders,
   getUserOrders,
   createOrder,
+  updateOrderStatus,
 };

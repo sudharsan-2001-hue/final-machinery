@@ -8,7 +8,7 @@ import "./login.css";
 function Login() {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const [userRole, setUserRole] = useState("customer"); // customer, seller
+  const [userRole, setUserRole] = useState("customer"); // customer, shopadmin
   const [formMode, setFormMode] = useState("login");
   const [loading, setLoading] = useState(false);
 
@@ -34,7 +34,8 @@ function Login() {
     const token = localStorage.getItem("scm_token");
     const remember = localStorage.getItem("scm_rememberMe") === "true";
     if (currentUser && token && remember && formMode === "login") {
-      if (currentUser.role === "seller") navigate("/seller-dashboard");
+      if (currentUser.role === "shopadmin") navigate("/adminhome");
+      else if (currentUser.role === "admin") navigate("/adminhome");
       else navigate("/home");
     }
   }, [navigate, formMode]);
@@ -57,8 +58,8 @@ function Login() {
       const data = await api.login(identifier, password);
       const user = { id: data.id, email: data.email, phone: data.phone, fullName: data.fullName, role: data.role };
 
-      if (userRole === "seller" && user.role !== "seller") {
-        setError("Invalid seller credentials.");
+      if (userRole === "admin" && user.role !== "admin") {
+        setError("Invalid admin credentials.");
         return;
       }
       if (userRole === "customer" && user.role !== "customer") {
@@ -69,7 +70,8 @@ function Login() {
       saveSession(user, data.token, rememberMe);
       showToast("Login successful!", "success");
 
-      if (user.role === "seller") navigate("/seller-dashboard");
+      if (user.role === "shopadmin") navigate("/adminhome");
+      else if (user.role === "admin") navigate("/adminhome");
       else navigate("/home");
     } catch (err) {
       setError(err.message || "Invalid email/phone or password.");
@@ -128,14 +130,14 @@ function Login() {
     setLoading(true);
     try {
       const data = await api.registerSeller(regEmail, regPassword, regPhone, regFullName, regGSTNumber, regBusinessName);
-      showToast("Seller registration successful!", "success");
-      setSuccess("Seller registration successful! You can now log in.");
+      showToast("Admin registration successful!", "success");
+      setSuccess("Admin registration successful! You can now log in.");
       setFormMode("login");
-      setUserRole("seller");
+      setUserRole("admin");
       setIdentifier(regEmail);
       setPassword(regPassword);
     } catch (err) {
-      setError(err.message || "Seller registration failed.");
+      setError(err.message || "Admin registration failed.");
     } finally {
       setLoading(false);
     }
@@ -172,9 +174,9 @@ function Login() {
 
   const getTitle = () => {
     if (formMode === "register") return "Create Customer Account";
-    if (formMode === "sellerRegister") return "Create Seller Account";
+    if (formMode === "sellerRegister") return "Create Shop Admin Account";
     if (formMode === "forgot") return "Reset Your Password";
-    return `Welcome! Please sign in to your ${userRole === "seller" ? "Seller" : "Customer"} Panel`;
+    return `Welcome! Please sign in to your ${userRole === "shopadmin" ? "Shop Admin" : "Customer"} Panel`;
   };
 
   return (
@@ -204,8 +206,8 @@ function Login() {
               <button type="button" className={`tab-btn ${userRole === "customer" ? "active" : ""}`} onClick={() => { setUserRole("customer"); resetMessages(); }}>
                 Customer
               </button>
-              <button type="button" className={`tab-btn ${userRole === "seller" ? "active" : ""}`} onClick={() => { setUserRole("seller"); resetMessages(); }}>
-                Seller
+              <button type="button" className={`tab-btn ${userRole === "shopadmin" ? "active" : ""}`} onClick={() => { setUserRole("shopadmin"); resetMessages(); }}>
+                Shop Admin
               </button>
             </div>
 
@@ -246,12 +248,7 @@ function Login() {
                 New customer?{" "}
                 <span className="link-text" onClick={() => { setFormMode("register"); resetMessages(); }}>Register here</span>
               </p>
-            ) : (
-              <p className="toggle-form-text">
-                New seller?{" "}
-                <span className="link-text" onClick={() => { setFormMode("sellerRegister"); resetMessages(); }}>Register seller</span>
-              </p>
-            )}
+            ) : null}
           </form>
         )}
 
@@ -310,11 +307,11 @@ function Login() {
               <input type="text" value={regBusinessName} onChange={(e) => setRegBusinessName(e.target.value)} placeholder="Enter business name" className="glass-input" disabled={loading} />
             </div>
             <button type="submit" className="login-submit-btn btn-grad-primary" disabled={loading}>
-              {loading ? <><span className="spinner-inline"></span>Registering...</> : "Register Seller"}
+              {loading ? <><span className="spinner-inline"></span>Registering...</> : "Register Admin"}
             </button>
             <p className="toggle-form-text">
               Back to login?{" "}
-              <span className="link-text" onClick={() => { setFormMode("login"); setUserRole("seller"); resetMessages(); }}>Seller login</span>
+              <span className="link-text" onClick={() => { setFormMode("login"); setUserRole("admin"); resetMessages(); }}>Admin login</span>
             </p>
           </form>
         )}

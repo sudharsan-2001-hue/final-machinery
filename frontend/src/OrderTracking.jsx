@@ -1,45 +1,86 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { api } from "./api";
-import { useToast } from "./components/Toast";
+import { useNavigate } from "react-router-dom";
+import { api, getProductImage, clearSession } from "./api";
+import "./order.css";
 
 function OrderTracking() {
-  const { orderId } = useParams();
   const navigate = useNavigate();
-  const { showToast } = useToast();
-  const [order, setOrder] = useState(null);
-  const [orderItems, setOrderItems] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadOrderDetails();
-  }, [orderId]);
+    const user = JSON.parse(localStorage.getItem("scm_currentUser"));
+    if (!user || user.role !== "customer") {
+      navigate("/");
+      return;
+    }
+    setCurrentUser(user);
+    loadOrders();
+  }, [navigate]);
 
-  const loadOrderDetails = async () => {
+  const loadOrders = async () => {
     try {
-      setLoading(true);
-      // TODO: Implement API call to fetch order details
-      setOrder(null);
-      setOrderItems([]);
+      const user = JSON.parse(localStorage.getItem("scm_currentUser"));
+      const userOrders = await api.getUserOrders(user.id);
+      setOrders(userOrders || []);
     } catch (err) {
-      showToast("Failed to load order details", "error");
+      console.error("Failed to load orders:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const generateInvoice = async () => {
+  const handleLogout = () => {
+    clearSession();
+    navigate("/");
+  };
+
+  const handlePrintInvoice = (order) => {
+    const invoiceData = {
+      orderId: order.orderId,
+      orderDate: order.orderDate,
+      customer: {
+        name: currentUser.username,
+        address: "",
+        city: "",
+        state: "",
+        pincode: "",
+        phone: currentUser.phone || "",
+        email: currentUser.email || ""
+      },
+      item: {
+        name: "Machinery Item",
+        price: order.totalAmount,
+        quantity: 1,
+        image: ""
+      },
+      totalAmount: order.totalAmount,
+      deliveryCharges: 0,
+      paymentMethod: order.paymentMethod,
+      paymentId: order.paymentId || "",
+      expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString("en-IN")
+    };
+    localStorage.setItem("scm_last_order", JSON.stringify(invoiceData));
+    navigate("/order");
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm("Are you sure you want to cancel this order?")) {
+      return;
+    }
     try {
-      // TODO: Implement API call to generate invoice
-      showToast("Invoice generated successfully!", "success");
+      await api.updateOrderStatus(orderId, "Cancelled");
+      loadOrders();
     } catch (err) {
-      showToast("Failed to generate invoice", "error");
+      alert("Failed to cancel order. Please try again.");
     }
   };
 
   const trackSteps = [
     { key: "Pending", label: "Order Placed" },
-    { key: "Processing", label: "Processing" },
+    { key: "Confirmed", label: "Confirmed" },
+    { key: "Preparing", label: "Packed" },
     { key: "Shipped", label: "Shipped" },
     { key: "Delivered", label: "Delivered" },
   ];
@@ -49,86 +90,129 @@ function OrderTracking() {
     return stepIndex >= 0 ? stepIndex : 0;
   };
 
+  const getStatusColor = (status) => {
+    const colors = {
+      "Pending": "#f59e0b",
+      "Confirmed": "#3b82f6",
+      "Preparing": "#8b5cf6",
+      "Shipped": "#06b6d4",
+      "Delivered": "#10b981",
+      "Cancelled": "#ef4444"
+    };
+    return colors[status] || "#6b7280";
+  };
+
+  if (!currentUser) return null;
+
   return (
-    <div className="order-tracking-container">
-      <div className="tracking-header">
-        <h1>Order Tracking</h1>
-        <button className="btn-back" onClick={() => navigate("/order")}>
-          Back to Orders
-        </button>
-      </div>
-
-      {loading ? (
-        <p>Loading order details...</p>
-      ) : !order ? (
-        <div className="empty-state">
-          <p>Order not found</p>
+    <div className="order-wrapper">
+      <header className="global-header glass-card-base animate-fade">
+        <div className="header-logo" onClick={() => navigate("/home")}>
+          <svg className="header-logo-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+          <span className="header-brand-text">Sudharsan Cottage Machinery</span>
         </div>
-      ) : (
-        <div className="tracking-content">
-          <div className="order-info">
-            <h3>Order #{order.OrderNumber}</h3>
-            <p>Placed on: {new Date(order.CreatedDate).toLocaleDateString()}</p>
-            <p>Status: {order.OrderStatus}</p>
-            <p>Payment Status: {order.PaymentStatus}</p>
+        <div className="header-title-container">
+          <h2 className="header-page-title">Order History</h2>
+        </div>
+        <div className="header-actions">
+          <button className="header-back-btn" onClick={() => navigate("/home")}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="header-icon-svg">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+            Back
+          </button>
+          <button className="header-logout-btn btn-grad-secondary" onClick={handleLogout}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="header-icon-svg">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Logout
+          </button>
+        </div>
+      </header>
+
+      <main className="order-main animate-slide">
+        {loading ? (
+          <div className="no-results-card glass-card-base">
+            <p>Loading orders...</p>
           </div>
-
-          <div className="tracking-timeline">
-            <h3>Order Status</h3>
-            <div className="timeline">
-              {trackSteps.map((step, index) => {
-                const currentStep = getCurrentStep(order.OrderStatus);
-                const isCompleted = index <= currentStep;
-                const isCurrent = index === currentStep;
-
-                return (
-                  <div key={step.key} className={`timeline-item ${isCompleted ? "completed" : ""} ${isCurrent ? "current" : ""}`}>
-                    <div className="timeline-marker"></div>
-                    <div className="timeline-content">
-                      <span className="timeline-label">{step.label}</span>
-                    </div>
+        ) : orders.length === 0 ? (
+          <div className="no-results-card glass-card-base">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="no-results-icon">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+              <line x1="12" y1="22.08" x2="12" y2="12" />
+            </svg>
+            <h3>No Orders Found</h3>
+            <p>You haven't placed any orders yet.</p>
+            <button className="btn-grad-secondary reset-filters-btn" onClick={() => navigate("/price")}>
+              Browse Products
+            </button>
+          </div>
+        ) : (
+          <div className="orders-list">
+            {orders.map((order) => (
+              <div key={order.orderId} className="order-card glass-card-base">
+                <div className="order-header">
+                  <div>
+                    <h3>Order #{order.orderId}</h3>
+                    <p className="order-date">Placed on: {order.orderDate}</p>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                  <div className="order-status-badge" style={{ backgroundColor: getStatusColor(order.status) }}>
+                    {order.status}
+                  </div>
+                </div>
 
-          <div className="order-items">
-            <h3>Order Items</h3>
-            <div className="items-list">
-              {/* TODO: Render order items */}
-            </div>
-          </div>
+                <div className="order-details">
+                  <div className="order-info-row">
+                    <span>Total Amount:</span>
+                    <strong>₹{order.totalAmount.toLocaleString("en-IN")}</strong>
+                  </div>
+                  <div className="order-info-row">
+                    <span>Payment Method:</span>
+                    <strong>{order.paymentMethod}</strong>
+                  </div>
+                  <div className="order-info-row">
+                    <span>Payment Status:</span>
+                    <strong>{order.status === "Delivered" ? "Completed" : "Pending"}</strong>
+                  </div>
+                </div>
 
-          <div className="order-summary">
-            <h3>Order Summary</h3>
-            <div className="summary-row">
-              <span>Subtotal</span>
-              <span>₹{order.SubTotal?.toLocaleString()}</span>
-            </div>
-            <div className="summary-row">
-              <span>GST</span>
-              <span>₹{order.GSTAmount?.toLocaleString()}</span>
-            </div>
-            <div className="summary-row">
-              <span>Shipping</span>
-              <span>₹{order.ShippingCharges?.toLocaleString()}</span>
-            </div>
-            <div className="summary-row total">
-              <span>Total</span>
-              <span>₹{order.TotalAmount?.toLocaleString()}</span>
-            </div>
-          </div>
+                <div className="order-timeline">
+                  {trackSteps.map((step, index) => {
+                    const currentStep = getCurrentStep(order.status);
+                    const isCompleted = index <= currentStep;
+                    const isCurrent = index === currentStep;
 
-          {order.PaymentStatus === "Completed" && (
-            <div className="order-actions">
-              <button className="btn-primary" onClick={generateInvoice}>
-                Generate Invoice
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+                    return (
+                      <div key={step.key} className={`timeline-step ${isCompleted ? "completed" : ""} ${isCurrent ? "current" : ""}`}>
+                        <div className="timeline-dot"></div>
+                        <span className="timeline-label">{step.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="order-actions">
+                  {order.status === "Pending" && (
+                    <button className="catalog-add-cart-btn btn-grad-cancel" onClick={() => handleCancelOrder(order.orderId)}>
+                      Cancel Order
+                    </button>
+                  )}
+                  <button className="catalog-add-cart-btn btn-grad-secondary" onClick={() => handlePrintInvoice(order)}>
+                    View Invoice
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
     </div>
   );
 }

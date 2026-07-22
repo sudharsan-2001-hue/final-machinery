@@ -16,6 +16,7 @@ function Price() {
 
   // Toast / Cart state
   const [cartAlert, setCartAlert] = useState("");
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
     // Session validation
@@ -40,6 +41,10 @@ function Price() {
       }
     }
     loadProducts();
+    
+    // Update cart count
+    const cart = JSON.parse(localStorage.getItem("scm_cart_items")) || [];
+    setCartCount(cart.length);
   }, [navigate]);
 
   // Apply filters whenever search or category changes
@@ -72,25 +77,25 @@ function Price() {
       return;
     }
 
-    // Add to cart session in LocalStorage
+    // Add to cart session in LocalStorage - always add as separate item for bulk orders
     const cart = JSON.parse(localStorage.getItem("scm_cart_items")) || [];
-    const existingIndex = cart.findIndex((item) => item.id === machine.id);
-
-    if (existingIndex > -1) {
-      // Check if adding exceeds stock
-      if (cart[existingIndex].quantity >= machine.stock) {
-        setCartAlert(`Cannot add more. Only ${machine.stock} units are in stock.`);
-        setTimeout(() => setCartAlert(""), 3000);
-        return;
-      }
-      cart[existingIndex].quantity += 1;
-    } else {
-      cart.push({ ...machine, quantity: 1 });
+    
+    // Always add as separate item with unique ID for bulk orders
+    const totalQtyForProduct = cart.filter(item => item.id === machine.id).reduce((sum, item) => sum + item.quantity, 0);
+    
+    if (totalQtyForProduct >= machine.stock) {
+      setCartAlert(`Cannot add more. Only ${machine.stock} units are in stock.`);
+      setTimeout(() => setCartAlert(""), 3000);
+      return;
     }
+    
+    cart.push({ ...machine, quantity: 1, price: machine.offerPrice || machine.originalPrice, cartItemId: Date.now() });
 
     localStorage.setItem("scm_cart_items", JSON.stringify(cart));
     setCartAlert(`"${machine.name}" added to cart successfully!`);
+    setCartCount(cart.length);
     setTimeout(() => setCartAlert(""), 3000);
+    navigate("/cart");
   };
 
   const handleBuyNow = (machine) => {
@@ -119,6 +124,14 @@ function Price() {
           <h2 className="header-page-title">Price List Catalog</h2>
         </div>
         <div className="header-actions">
+          <button className="header-cart-btn" onClick={() => navigate("/cart")}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="header-icon-svg">
+              <circle cx="9" cy="21" r="1" />
+              <circle cx="20" cy="21" r="1" />
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+            </svg>
+            {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+          </button>
           <button className="header-back-btn" onClick={() => navigate("/home")}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="header-icon-svg">
               <line x1="19" y1="12" x2="5" y2="12" />

@@ -17,7 +17,7 @@ function authenticate(req, res, next) {
 }
 
 function requireAdmin(req, res, next) {
-  if (!req.user || req.user.role !== "admin") {
+  if (!req.user || (req.user.role !== "admin" && req.user.role !== "shopadmin")) {
     return res.status(403).json({ message: "Admin access required." });
   }
   next();

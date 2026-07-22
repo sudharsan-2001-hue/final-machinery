@@ -33,7 +33,7 @@ function AvailableStock() {
   useEffect(() => {
     // 1. Session validation
     const user = JSON.parse(localStorage.getItem("scm_currentUser"));
-    if (!user || user.role !== "admin") {
+    if (!user || (user.role !== "admin" && user.role !== "shopadmin")) {
       navigate("/");
       return;
     }

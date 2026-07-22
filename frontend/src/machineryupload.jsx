@@ -45,7 +45,7 @@ function MachineryUpload() {
   useEffect(() => {
     // Session validation
     const user = JSON.parse(localStorage.getItem("scm_currentUser"));
-    if (!user || user.role !== "admin") {
+    if (!user || (user.role !== "admin" && user.role !== "shopadmin")) {
       navigate("/");
       return;
     }
@@ -127,6 +127,11 @@ function MachineryUpload() {
       setOfferPrice("");
       setStock("");
       setUploadedImageBase64("");
+
+      // Navigate back to dashboard after short delay
+      setTimeout(() => {
+        navigate("/adminhome");
+      }, 1500);
     } catch (err) {
       setErrors((prev) => ({ ...prev, submit: err.message || "Failed to register product." }));
     }

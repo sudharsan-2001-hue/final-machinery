@@ -16,8 +16,12 @@ const orderRoutes = require("./routes/orderRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const invoiceRoutes = require("./routes/invoiceRoutes");
+const shopRoutes = require("./routes/shopRoutes");
 
 const app = express();
+
+// Serve static files for product images
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
   .split(",")
@@ -69,6 +73,7 @@ app.use("/api", orderRoutes);
 app.use("/api", adminRoutes);
 app.use("/api", paymentRoutes);
 app.use("/api", invoiceRoutes);
+app.use("/api/shops", shopRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

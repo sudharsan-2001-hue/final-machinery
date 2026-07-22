@@ -114,8 +114,9 @@ export const api = {
     return data;
   },
 
-  async getProducts() {
-    const { data } = await http.get("/products");
+  async getProducts(shopId) {
+    const params = shopId ? { shopId } : {};
+    const { data } = await http.get("/products", { params });
     return data;
   },
 
@@ -159,6 +160,11 @@ export const api = {
     return data;
   },
 
+  async getAllOrders() {
+    const { data } = await http.get("/orders");
+    return data;
+  },
+
   async getUserOrders(userId) {
     const { data } = await http.get(`/users/${userId}/orders`);
     return data;
@@ -166,6 +172,11 @@ export const api = {
 
   async createOrder(orderData) {
     const { data } = await http.post("/orders", orderData);
+    return data;
+  },
+
+  async updateOrderStatus(orderId, orderStatus) {
+    const { data } = await http.put(`/orders/${orderId}/status`, { orderStatus });
     return data;
   },
 
@@ -184,8 +195,73 @@ export const api = {
     return data;
   },
 
+  async sendContactMessage(name, email, message) {
+    const { data } = await http.post("/contact-messages", { name, email, message });
+    return data;
+  },
+
+  async sendComplaint(subject, description, orderId, complaintType, imageUrl, language) {
+    const { data } = await http.post("/complaints", { subject, description, orderId, complaintType, imageUrl, language });
+    return data;
+  },
+
+  async getComplaints() {
+    const { data } = await http.get("/complaints");
+    return data;
+  },
+
+  async getComplaintById(complaintId) {
+    const { data } = await http.get(`/complaints/${complaintId}`);
+    return data;
+  },
+
+  async updateComplaintReply(complaintId, adminReply) {
+    const { data } = await http.put(`/complaints/${complaintId}/reply`, { adminReply });
+    return data;
+  },
+
+  async generateComplaintVoice(complaintId, text, language) {
+    const { data } = await http.post(`/complaints/${complaintId}/generate-voice`, { text, language });
+    return data;
+  },
+
+  async getContactMessages() {
+    const { data } = await http.get("/contact-messages");
+    return data;
+  },
+
+  async markMessageAsRead(messageId) {
+    const { data } = await http.put(`/contact-messages/${messageId}/read`);
+    return data;
+  },
+
   async getAdminMetrics() {
     const { data } = await http.get("/admin/metrics");
+    return data;
+  },
+
+  async getShops() {
+    const { data } = await http.get("/shops");
+    return data;
+  },
+
+  async getShopById(id) {
+    const { data } = await http.get(`/shops/${id}`);
+    return data;
+  },
+
+  async createShop(shopData) {
+    const { data } = await http.post("/shops", shopData);
+    return data;
+  },
+
+  async updateShop(id, shopData) {
+    const { data } = await http.put(`/shops/${id}`, shopData);
+    return data;
+  },
+
+  async deleteShop(id) {
+    const { data } = await http.delete(`/shops/${id}`);
     return data;
   },
 };
