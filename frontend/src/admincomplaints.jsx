@@ -14,6 +14,10 @@ function AdminComplaints() {
   const [voiceLanguage, setVoiceLanguage] = useState("tamil");
   const [isSavingReply, setIsSavingReply] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [audioChunks, setAudioChunks] = useState([]);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("scm_currentUser"));
@@ -41,9 +45,12 @@ function AdminComplaints() {
   const handleComplaintClick = async (complaintId) => {
     try {
       const complaint = await api.getComplaintById(complaintId);
+      console.log("Admin - Complaint details loaded:", complaint);
+      console.log("Admin - VoiceReplyUrl:", complaint.VoiceReplyUrl);
       setSelectedComplaint(complaint);
       setReplyText(complaint.AdminReply || "");
     } catch (err) {
+      console.error("Admin - Load complaint error:", err);
       setError("Failed to load complaint details");
     }
   };
@@ -63,7 +70,7 @@ function AdminComplaints() {
         await api.generateComplaintVoice(selectedComplaint.ComplaintID, replyText, voiceLanguage);
       } catch (voiceErr) {
         console.error("Voice generation failed:", voiceErr);
-        // Continue even if voice generation fails
+        alert("Reply saved but voice generation failed. You can try generating voice again.");
       }
       
       setSaveSuccess(true);
@@ -74,9 +81,93 @@ function AdminComplaints() {
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
       console.error("Save reply error:", err);
-      alert("Failed to save reply. Please try again.");
+      alert("Failed to save reply: " + (err.message || "Unknown error"));
       setIsSavingReply(false);
       setSaveSuccess(false);
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks = [];
+
+      recorder.ondataavailable = (e) => {
+        chunks.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setRecordedAudioUrl(audioUrl);
+        setAudioChunks(chunks);
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Error starting recording:", err);
+      alert("Failed to start recording. Please check microphone permissions.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      setIsRecording(false);
+    }
+  };
+
+  const handleUploadRecordedAudio = async () => {
+    if (!recordedAudioUrl || !selectedComplaint) return;
+
+    try {
+      setIsSavingReply(true);
+      console.log("Starting voice upload for complaint:", selectedComplaint.ComplaintID);
+      
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      const formData = new FormData();
+      formData.append('audio', audioBlob, `voice_reply_${selectedComplaint.ComplaintID}.webm`);
+      formData.append('complaintId', selectedComplaint.ComplaintID);
+
+      console.log("Uploading to backend...");
+
+      // Upload audio to backend
+      const response = await fetch('/api/upload-voice-reply', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('scm_token')}`
+        },
+        body: formData
+      });
+
+      console.log("Upload response status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Upload failed:", errorText);
+        throw new Error('Failed to upload voice reply');
+      }
+
+      const result = await response.json();
+      console.log("Upload result:", result);
+      
+      // Reload complaint details to get updated voice URL
+      await handleComplaintClick(selectedComplaint.ComplaintID);
+      
+      setSaveSuccess(true);
+      setRecordedAudioUrl(null);
+      setAudioChunks([]);
+      setIsSavingReply(false);
+      
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      console.error("Upload voice error:", err);
+      alert("Failed to upload voice reply: " + (err.message || "Unknown error"));
+      setIsSavingReply(false);
     }
   };
 
@@ -241,6 +332,72 @@ function AdminComplaints() {
                         <option value="english">English</option>
                       </select>
                     </div>
+                    
+                    {/* Voice Recorder Section */}
+                    <div className="voice-recorder-section">
+                      <div className="recorder-controls">
+                        {!isRecording && !recordedAudioUrl && (
+                          <button
+                            className="btn-record-icon"
+                            onClick={startRecording}
+                            title="Record Voice Reply"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <circle cx="12" cy="12" r="10" />
+                              <circle cx="12" cy="12" r="3" fill="currentColor" />
+                            </svg>
+                          </button>
+                        )}
+                        {isRecording && (
+                          <button
+                            className="btn-stop-icon"
+                            onClick={stopRecording}
+                            title="Stop Recording"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <rect x="6" y="6" width="12" height="12" fill="currentColor" />
+                            </svg>
+                          </button>
+                        )}
+                        {recordedAudioUrl && (
+                          <div className="recorded-audio-preview">
+                            <audio controls src={recordedAudioUrl} className="compact-audio"></audio>
+                            <div className="audio-actions">
+                              <button
+                                className="btn-upload-icon"
+                                onClick={handleUploadRecordedAudio}
+                                disabled={isSavingReply}
+                                title="Upload Voice"
+                              >
+                                {isSavingReply ? (
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                                  </svg>
+                                ) : (
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5 5-5-5M12 3v12" />
+                                  </svg>
+                                )}
+                              </button>
+                              <button
+                                className="btn-discard-icon"
+                                onClick={() => {
+                                  setRecordedAudioUrl(null);
+                                  setAudioChunks([]);
+                                }}
+                                title="Discard"
+                              >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <line x1="18" y1="6" x2="6" y2="18" />
+                                  <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
                     <div className="reply-actions">
                       {saveSuccess && (
                         <div className="success-message">✓ Submitted Successfully</div>
@@ -259,7 +416,8 @@ function AdminComplaints() {
                     <div className="voice-reply-section">
                       <h4>Voice Reply</h4>
                       <audio controls className="audio-player">
-                        <source src={selectedComplaint.VoiceReplyUrl} type="audio/mpeg" />
+                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('/api') ? selectedComplaint.VoiceReplyUrl : `/api${selectedComplaint.VoiceReplyUrl}`} type="audio/mpeg" />
+                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('/api') ? selectedComplaint.VoiceReplyUrl : `/api${selectedComplaint.VoiceReplyUrl}`} type="audio/webm" />
                         Your browser does not support the audio element.
                       </audio>
                     </div>

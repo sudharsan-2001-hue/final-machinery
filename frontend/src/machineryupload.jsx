@@ -81,9 +81,11 @@ function MachineryUpload() {
     if (!originalPrice || orig <= 0) {
       tempErrors.originalPrice = "Enter a valid original price.";
     }
-    if (!offerPrice || offer <= 0) {
+    
+    // Offer price is optional, but if provided, must be valid
+    if (offerPrice && offer <= 0) {
       tempErrors.offerPrice = "Enter a valid offer price.";
-    } else if (offer > orig) {
+    } else if (offerPrice && offer > orig) {
       tempErrors.offerPrice = "Offer price cannot exceed original market rate.";
     }
 
@@ -112,7 +114,7 @@ function MachineryUpload() {
         name,
         description,
         originalPrice: Number(originalPrice),
-        offerPrice: Number(offerPrice),
+        offerPrice: offerPrice ? Number(offerPrice) : Number(originalPrice),
         stock: Number(stock),
         category,
         image: imageSource

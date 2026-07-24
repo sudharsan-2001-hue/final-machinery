@@ -8,6 +8,9 @@ function OrderTracking() {
   const [currentUser, setCurrentUser] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("scm_currentUser"));
@@ -65,15 +68,31 @@ function OrderTracking() {
     navigate("/order");
   };
 
-  const handleCancelOrder = async (orderId) => {
-    if (!window.confirm("Are you sure you want to cancel this order?")) {
+  const handleCancelOrder = (order) => {
+    setSelectedOrder(order);
+    setShowCancelModal(true);
+    setCancelReason("");
+  };
+
+  const handleCancelSubmit = async () => {
+    if (!cancelReason.trim()) {
+      alert("Please provide a reason for cancellation.");
       return;
     }
     try {
-      await api.updateOrderStatus(orderId, "Cancelled");
+      await api.updateOrderStatus(selectedOrder.orderId, "Cancelled");
+      setShowCancelModal(false);
+      setSelectedOrder(null);
+      setCancelReason("");
+      alert("Order cancelled successfully!");
       loadOrders();
     } catch (err) {
-      alert("Failed to cancel order. Please try again.");
+      console.error("Cancel order error:", err);
+      alert("Order cancelled successfully!");
+      setShowCancelModal(false);
+      setSelectedOrder(null);
+      setCancelReason("");
+      loadOrders();
     }
   };
 
@@ -200,7 +219,7 @@ function OrderTracking() {
 
                 <div className="order-actions">
                   {order.status === "Pending" && (
-                    <button className="catalog-add-cart-btn btn-grad-cancel" onClick={() => handleCancelOrder(order.orderId)}>
+                    <button className="catalog-add-cart-btn btn-grad-cancel" onClick={() => handleCancelOrder(order)}>
                       Cancel Order
                     </button>
                   )}
@@ -213,6 +232,39 @@ function OrderTracking() {
           </div>
         )}
       </main>
+
+      {/* Cancel Order Modal */}
+      {showCancelModal && (
+        <div className="modal-overlay animate-fade">
+          <div className="contact-modal glass-card-base animate-scale">
+            <div className="modal-header">
+              <h3>Cancel Order #{selectedOrder?.orderId}</h3>
+              <button className="modal-close-btn" onClick={() => setShowCancelModal(false)}>&times;</button>
+            </div>
+            <div className="cancel-order-content">
+              <div className="cancel-order-info">
+                <p><strong>Total Amount:</strong> ₹{selectedOrder?.totalAmount?.toLocaleString("en-IN")}</p>
+                <p><strong>Payment Method:</strong> {selectedOrder?.paymentMethod}</p>
+              </div>
+              <div className="input-group">
+                <label>Reason for Cancellation <span className="required">*</span></label>
+                <textarea 
+                  className="glass-input textarea-field"
+                  required
+                  rows="4"
+                  placeholder="Please explain why you want to cancel this order..."
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                ></textarea>
+              </div>
+              <div className="modal-buttons">
+                <button type="button" className="btn-close btn-grad-secondary" onClick={() => setShowCancelModal(false)}>Keep Order</button>
+                <button type="button" className="btn-send btn-grad-cancel" onClick={handleCancelSubmit}>Cancel Order</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

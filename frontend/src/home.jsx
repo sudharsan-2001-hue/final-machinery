@@ -311,7 +311,7 @@ function Home() {
                 <span className="offer-highlight">Free Delivery</span>
               </div>
             </div>
-            <button className="offer-cta-btn" onClick={() => navigate("/price")}>
+            <button className="offer-cta-btn" onClick={() => navigate("/price?offer=true")}>
               Grab Offer
             </button>
           </div>
@@ -376,9 +376,9 @@ function Home() {
                 <path d="M12 16h.01" />
               </svg>
             </div>
-            <h3 className="nav-card-title">My Complaints</h3>
+            <h3 className="nav-card-title">View Replies</h3>
             <p className="nav-card-desc">View your submitted complaints, check admin responses, and listen to voice replies.</p>
-            <span className="nav-card-action">View Complaints →</span>
+            <span className="nav-card-action">View Replies →</span>
           </div>
         </section>
 

@@ -40,34 +40,51 @@ function Payment() {
 
     const checkout = JSON.parse(localStorage.getItem("scm_checkout"));
     if (!checkout || !checkout.customer) {
-      navigate("/address");
+      navigate("/checkout");
       return;
     }
     setCheckoutData(checkout);
   }, [navigate]);
 
   const executeCodOrder = useCallback(async () => {
-    const totalAmount = checkoutData.totalAmount + DELIVERY_CHARGES;
+    const totalAmount = checkoutData.totalAmount;
     setPlacingOrder(true);
     setPaymentError("");
 
     try {
+      // Create order with first item for compatibility
+      const firstItem = checkoutData.items[0];
       const newOrder = await api.createOrder({
         userId: currentUser.id,
         addressId: checkoutData.addressId,
         totalAmount,
         paymentMethod: "Cash On Delivery",
         item: {
-          id: checkoutData.machineId,
-          quantity: checkoutData.quantity,
-          price: checkoutData.offerPrice,
+          id: firstItem.id,
+          quantity: firstItem.quantity,
+          price: firstItem.offerPrice,
         },
       });
 
       localStorage.removeItem("scm_checkout");
-      localStorage.setItem("scm_last_order", JSON.stringify(newOrder));
+      localStorage.removeItem("scm_cart_items");
+      
+      const invoiceData = {
+        orderId: newOrder.orderNumber,
+        orderDate: new Date().toLocaleDateString("en-IN"),
+        customer: checkoutData.customer,
+        items: checkoutData.items,
+        totalAmount: checkoutData.totalAmount,
+        deliveryCharges: checkoutData.deliveryCharges,
+        gst: checkoutData.gst,
+        subtotal: checkoutData.subtotal,
+        paymentMethod: "Cash On Delivery",
+        expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString("en-IN")
+      };
+      localStorage.setItem("scm_last_order", JSON.stringify(invoiceData));
+      
       showToast("Order placed successfully!", "success");
-      navigate("/order");
+      navigate("/ordertracking");
     } catch (err) {
       setPaymentError(err.message || "Failed to place order.");
       showToast(err.message || "Failed to place order.", "error");
@@ -77,7 +94,7 @@ function Payment() {
   }, [checkoutData, currentUser, navigate, showToast]);
 
   const executeRazorpayPayment = useCallback(async () => {
-    const totalAmount = checkoutData.totalAmount + DELIVERY_CHARGES;
+    const totalAmount = checkoutData.totalAmount;
     setPlacingOrder(true);
     setPaymentError("");
 
@@ -94,7 +111,7 @@ function Payment() {
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency,
         name: "Sudharsan Cottage Machinery",
-        description: checkoutData.name,
+        description: "Machinery Purchase",
         order_id: razorpayOrder.orderId,
         prefill: {
           name: checkoutData.customer.name,
@@ -104,6 +121,8 @@ function Payment() {
         theme: { color: "#22c55e" },
         handler: async (response) => {
           try {
+            // Create order with first item for compatibility
+            const firstItem = checkoutData.items[0];
             const newOrder = await api.verifyRazorpayPayment({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
@@ -112,16 +131,32 @@ function Payment() {
               addressId: checkoutData.addressId,
               totalAmount,
               item: {
-                id: checkoutData.machineId,
-                quantity: checkoutData.quantity,
-                price: checkoutData.offerPrice,
+                id: firstItem.id,
+                quantity: firstItem.quantity,
+                price: firstItem.offerPrice,
               },
             });
 
             localStorage.removeItem("scm_checkout");
-            localStorage.setItem("scm_last_order", JSON.stringify(newOrder));
+            localStorage.removeItem("scm_cart_items");
+            
+            const invoiceData = {
+              orderId: newOrder.orderNumber,
+              orderDate: new Date().toLocaleDateString("en-IN"),
+              customer: checkoutData.customer,
+              items: checkoutData.items,
+              totalAmount: checkoutData.totalAmount,
+              deliveryCharges: checkoutData.deliveryCharges,
+              gst: checkoutData.gst,
+              subtotal: checkoutData.subtotal,
+              paymentMethod: "Razorpay",
+              paymentId: response.razorpay_payment_id,
+              expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString("en-IN")
+            };
+            localStorage.setItem("scm_last_order", JSON.stringify(invoiceData));
+            
             showToast("Payment successful! Order confirmed.", "success");
-            navigate("/home");
+            navigate("/ordertracking");
           } catch (err) {
             setPaymentError(err.message || "Payment verified but order failed.");
             showToast(err.message || "Order failed after payment.", "error");
@@ -168,7 +203,7 @@ function Payment() {
 
   if (!currentUser || !checkoutData) return null;
 
-  const totalPayable = checkoutData.totalAmount + DELIVERY_CHARGES;
+  const totalPayable = checkoutData.totalAmount;
 
   return (
     <div className="payment-wrapper">
@@ -197,23 +232,32 @@ function Payment() {
         <div className="payment-split-grid">
           <div className="payment-summary-col glass-card-base">
             <h3 className="section-col-title">Order Invoice Summary</h3>
-            <div className="invoice-product-row">
-              <img src={getProductImage(checkoutData.image)} alt={checkoutData.name} className="invoice-product-image" />
-              <div className="invoice-product-info">
-                <h4>{checkoutData.name}</h4>
-                <p>Quantity: <strong>{checkoutData.quantity}</strong></p>
-                <p>Unit Rate: <strong>₹{checkoutData.offerPrice.toLocaleString("en-IN")}</strong></p>
-              </div>
+            <div className="invoice-products-list">
+              {checkoutData.items && checkoutData.items.map((item, index) => (
+                <div key={index} className="invoice-product-row">
+                  <img src={getProductImage(item.image)} alt={item.name} className="invoice-product-image" />
+                  <div className="invoice-product-info">
+                    <h4>{item.name}</h4>
+                    <p>Quantity: <strong>{item.quantity}</strong></p>
+                    <p>Unit Rate: <strong>₹{item.offerPrice.toLocaleString("en-IN")}</strong></p>
+                    <p>Total: <strong>₹{(item.offerPrice * item.quantity).toLocaleString("en-IN")}</strong></p>
+                  </div>
+                </div>
+              ))}
             </div>
             <div className="invoice-divider"></div>
             <div className="invoice-price-table">
               <div className="invoice-price-row">
-                <span>Items Subtotal</span>
-                <span>₹{checkoutData.totalAmount.toLocaleString("en-IN")}</span>
+                <span>Items Subtotal ({checkoutData.items?.length || 0} items)</span>
+                <span>₹{checkoutData.subtotal?.toLocaleString("en-IN") || checkoutData.totalAmount?.toLocaleString("en-IN")}</span>
               </div>
               <div className="invoice-price-row">
-                <span>Heavy Cargo Shipping</span>
-                <span>₹{DELIVERY_CHARGES.toLocaleString("en-IN")}</span>
+                <span>GST (18%)</span>
+                <span>₹{checkoutData.gst?.toLocaleString("en-IN") || 0}</span>
+              </div>
+              <div className="invoice-price-row">
+                <span>Delivery Charges</span>
+                <span>₹{checkoutData.deliveryCharges?.toLocaleString("en-IN") || 0}</span>
               </div>
               <div className="invoice-divider"></div>
               <div className="invoice-price-row grand-total">

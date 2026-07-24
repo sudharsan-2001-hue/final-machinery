@@ -8,6 +8,7 @@ function Price() {
   const [currentUser, setCurrentUser] = useState(null);
   const [machinery, setMachinery] = useState([]);
   const [filteredMachinery, setFilteredMachinery] = useState([]);
+  const [showOffersOnly, setShowOffersOnly] = useState(false);
 
   // Filter & Search states
   const [searchTerm, setSearchTerm] = useState("");
@@ -27,11 +28,37 @@ function Price() {
     }
     setCurrentUser(user);
 
+    // Check URL parameter for offer filter
+    const urlParams = new URLSearchParams(window.location.search);
+    const offerParam = urlParams.get('offer');
+    setShowOffersOnly(offerParam === 'true');
+
     async function loadProducts() {
       try {
         const storedMachinery = await api.getProducts();
+        console.log("All products loaded:", storedMachinery);
+        console.log("Offer param:", offerParam);
+        console.log("Show offers only state:", showOffersOnly);
         setMachinery(storedMachinery);
-        setFilteredMachinery(storedMachinery);
+        
+        // Filter for offers if requested
+        if (offerParam === 'true') {
+          console.log("Applying offer filter...");
+          const offerProducts = storedMachinery.filter(m => {
+            const hasValidOfferPrice = m.offerPrice !== null && m.offerPrice !== undefined;
+            const isPositive = m.offerPrice > 0;
+            const isLessThanOriginal = m.offerPrice < m.originalPrice;
+            const hasOffer = hasValidOfferPrice && isPositive && isLessThanOriginal;
+            console.log(`Product ${m.name}: offerPrice=${m.offerPrice}, originalPrice=${m.originalPrice}, hasValidOfferPrice=${hasValidOfferPrice}, isPositive=${isPositive}, isLessThanOriginal=${isLessThanOriginal}, hasOffer=${hasOffer}`);
+            return hasOffer;
+          });
+          console.log("Filtered offer products:", offerProducts);
+          console.log("Total filtered count:", offerProducts.length);
+          setFilteredMachinery(offerProducts);
+        } else {
+          console.log("No offer filter applied, showing all products");
+          setFilteredMachinery(storedMachinery);
+        }
 
         // Extract unique categories
         const cats = ["All", ...new Set(storedMachinery.map((m) => m.category))];
@@ -51,10 +78,22 @@ function Price() {
   useEffect(() => {
     let result = machinery;
 
+    // First apply offer filter if enabled
+    if (showOffersOnly) {
+      result = result.filter(m => {
+        const hasValidOfferPrice = m.offerPrice !== null && m.offerPrice !== undefined;
+        const isPositive = m.offerPrice > 0;
+        const isLessThanOriginal = m.offerPrice < m.originalPrice;
+        return hasValidOfferPrice && isPositive && isLessThanOriginal;
+      });
+    }
+
+    // Then apply category filter
     if (selectedCategory !== "All") {
       result = result.filter((m) => m.category === selectedCategory);
     }
 
+    // Then apply search filter
     if (searchTerm.trim() !== "") {
       result = result.filter((m) =>
         m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -63,7 +102,7 @@ function Price() {
     }
 
     setFilteredMachinery(result);
-  }, [searchTerm, selectedCategory, machinery]);
+  }, [searchTerm, selectedCategory, machinery, showOffersOnly]);
 
   const handleLogout = () => {
     clearSession();

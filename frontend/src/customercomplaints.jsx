@@ -10,6 +10,48 @@ function CustomerComplaints() {
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showComplaintModal, setShowComplaintModal] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  
+  const [complaintForm, setComplaintForm] = useState({
+    subject: "",
+    description: "",
+    orderId: "",
+    complaintType: "General",
+    imageUrl: "",
+    language: "tamil"
+  });
+
+  const speakText = (text) => {
+    if (!text) return;
+    
+    // Cancel any ongoing speech
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US'; // Default to English
+    utterance.rate = 0.9; // Slightly slower for better comprehension
+    utterance.pitch = 1;
+
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      console.log("AI Voice started speaking");
+    };
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      console.log("AI Voice finished speaking");
+    };
+
+    utterance.onerror = (event) => {
+      setIsSpeaking(false);
+      console.error("AI Voice error:", event.error);
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("scm_currentUser"));
@@ -25,12 +67,18 @@ function CustomerComplaints() {
   const loadComplaints = async () => {
     try {
       setLoading(true);
-      const data = await api.getComplaints();
-      // Filter complaints for current user
-      const userComplaints = data.filter(c => c.CustomerID === currentUser.id);
-      setComplaints(userComplaints);
+      const data = await api.getMyComplaints();
+      console.log("Loaded complaints:", data);
+      setComplaints(data);
       setLoading(false);
+      
+      // Auto-select first complaint if available
+      if (data.length > 0 && !selectedComplaint) {
+        console.log("Auto-selecting first complaint:", data[0]);
+        setSelectedComplaint(data[0]);
+      }
     } catch (err) {
+      console.error("Load complaints error:", err);
       setError("Failed to load complaints");
       setLoading(false);
     }
@@ -39,9 +87,51 @@ function CustomerComplaints() {
   const handleComplaintClick = async (complaintId) => {
     try {
       const complaint = await api.getComplaintById(complaintId);
+      console.log("Customer - Complaint details:", complaint);
+      console.log("Customer - AdminReply:", complaint.AdminReply);
+      console.log("Customer - ReplyDate:", complaint.ReplyDate);
+      console.log("Customer - VoiceReplyUrl:", complaint.VoiceReplyUrl);
+      console.log("Customer - VoiceReplyUrl type:", typeof complaint.VoiceReplyUrl);
+      console.log("Customer - VoiceReplyUrl exists:", !!complaint.VoiceReplyUrl);
       setSelectedComplaint(complaint);
     } catch (err) {
+      console.error("Customer - Load complaint details error:", err);
       setError("Failed to load complaint details");
+    }
+  };
+
+  const handleComplaintSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const result = await api.sendComplaint(
+        complaintForm.subject, 
+        complaintForm.description, 
+        complaintForm.orderId,
+        complaintForm.complaintType,
+        complaintForm.imageUrl,
+        complaintForm.language
+      );
+      alert("Complaint Accepted! Your complaint has been registered. We will resolve your complaint within 1 day.");
+      
+      playTamilVoiceMessage();
+      
+      setComplaintForm({ subject: "", description: "", orderId: "", complaintType: "General", imageUrl: "", language: "tamil" });
+      setShowComplaintModal(false);
+      loadComplaints();
+    } catch (err) {
+      alert("Failed to submit complaint. Please try again.");
+    }
+  };
+
+  const playTamilVoiceMessage = () => {
+    if ('speechSynthesis' in window) {
+      const tamilMessage = "வணக்கம். Sudharsan Machinery Customer Support. உங்கள் புகார் வெற்றிகரமாக பதிவு செய்யப்பட்டுள்ளது. எங்கள் குழு விரைவில் அதை பரிசீலித்து உங்களை தொடர்புகொள்ளும். நன்றி.";
+      
+      const utterance = new SpeechSynthesisUtterance(tamilMessage);
+      utterance.lang = 'ta-IN';
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      window.speechSynthesis.speak(utterance);
     }
   };
 
@@ -58,15 +148,15 @@ function CustomerComplaints() {
           <span className="header-brand-text">Sudharsan Cottage Machinery</span>
         </div>
         <div className="header-title-container">
-          <h2 className="header-page-title">My Complaints</h2>
+          <h2 className="header-page-title">View Replies</h2>
         </div>
         <div className="header-actions">
-          <button className="header-back-btn" onClick={() => navigate("/home")} title="Back to Home">
+          <button className="header-new-complaint-btn btn-grad-primary" onClick={() => setShowComplaintModal(true)} title="File New Complaint">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="header-icon-svg">
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Back
+            New Complaint
           </button>
           <button className="header-logout-btn btn-grad-secondary" onClick={() => { clearSession(); navigate("/"); }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="header-icon-svg">
@@ -93,7 +183,7 @@ function CustomerComplaints() {
         ) : (
           <div className="complaints-layout">
             <div className="complaints-list-section glass-card-base">
-              <h3 className="section-title">My Complaints ({complaints.length})</h3>
+              <h3 className="section-title">View Replies ({complaints.length})</h3>
               <div className="complaints-list">
                 {complaints.length === 0 ? (
                   <div className="no-complaints">
@@ -103,8 +193,9 @@ function CustomerComplaints() {
                       <path d="M12 16h.01" />
                     </svg>
                     <p>No complaints yet</p>
+                    <p className="no-complaints-hint">Submit a complaint from the home page to get started</p>
                     <button className="new-complaint-btn" onClick={() => navigate("/home")}>
-                      File a New Complaint
+                      Go to Home Page
                     </button>
                   </div>
                 ) : (
@@ -174,7 +265,16 @@ function CustomerComplaints() {
                     <p>{selectedComplaint.Description}</p>
                   </div>
 
-                  {selectedComplaint.VoiceReplyUrl && (
+                  {/* Debug: Show VoiceReplyUrl and AdminReply values */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div style={{padding: '10px', background: 'rgba(255,255,0,0.1)', margin: '10px 0', fontSize: '12px'}}>
+                      <strong>Debug - VoiceReplyUrl:</strong> {selectedComplaint.VoiceReplyUrl || 'null'}<br/>
+                      <strong>Debug - AdminReply:</strong> {selectedComplaint.AdminReply || 'null'}<br/>
+                      <strong>Debug - ReplyDate:</strong> {selectedComplaint.ReplyDate || 'null'}
+                    </div>
+                  )}
+
+                  {selectedComplaint.AdminReply && (
                     <div className="voice-reply-section">
                       <h4>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="voice-icon">
@@ -183,10 +283,42 @@ function CustomerComplaints() {
                         </svg>
                         Admin Voice Reply
                       </h4>
-                      <audio controls className="audio-player">
-                        <source src={selectedComplaint.VoiceReplyUrl} type="audio/mpeg" />
-                        Your browser does not support the audio element.
-                      </audio>
+                      <button 
+                        onClick={() => speakText(selectedComplaint.AdminReply)}
+                        disabled={isSpeaking}
+                        className="voice-play-button"
+                        style={{
+                          padding: '10px 20px',
+                          backgroundColor: isSpeaking ? '#FF9800' : '#4CAF50',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: isSpeaking ? 'not-allowed' : 'pointer',
+                          marginTop: '10px',
+                          fontSize: '16px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        {isSpeaking ? (
+                          <>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                              <rect x="6" y="4" width="4" height="16" />
+                              <rect x="14" y="4" width="4" height="16" />
+                            </svg>
+                            Speaking...
+                          </>
+                        ) : (
+                          <>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+                            </svg>
+                            Play Voice Reply
+                          </>
+                        )}
+                      </button>
                     </div>
                   )}
 
@@ -226,6 +358,67 @@ function CustomerComplaints() {
           </div>
         )}
       </main>
+
+      {/* Complaint Modal */}
+      {showComplaintModal && (
+        <div className="modal-overlay animate-fade">
+          <div className="contact-modal glass-card-base animate-scale">
+            <div className="modal-header">
+              <h3>Submit a Complaint</h3>
+              <button className="modal-close-btn" onClick={() => setShowComplaintModal(false)}>&times;</button>
+            </div>
+            <form onSubmit={handleComplaintSubmit} className="contact-form">
+              <div className="input-group">
+                <label>Order ID (Optional)</label>
+                <input 
+                  type="text" 
+                  className="glass-input" 
+                  placeholder="Enter Order ID if applicable"
+                  value={complaintForm.orderId}
+                  onChange={(e) => setComplaintForm({...complaintForm, orderId: e.target.value})}
+                />
+              </div>
+              <div className="input-group">
+                <label>Subject</label>
+                <input 
+                  type="text" 
+                  className="glass-input" 
+                  required 
+                  placeholder="Brief description of the issue"
+                  value={complaintForm.subject}
+                  onChange={(e) => setComplaintForm({...complaintForm, subject: e.target.value})}
+                />
+              </div>
+              <div className="input-group">
+                <label>Detailed Description</label>
+                <textarea 
+                  className="glass-input textarea-field" 
+                  required 
+                  rows="5" 
+                  placeholder="Please provide detailed information about your complaint..."
+                  value={complaintForm.description}
+                  onChange={(e) => setComplaintForm({...complaintForm, description: e.target.value})}
+                ></textarea>
+              </div>
+              <div className="input-group">
+                <label>Voice Language</label>
+                <select 
+                  className="glass-input"
+                  value={complaintForm.language}
+                  onChange={(e) => setComplaintForm({...complaintForm, language: e.target.value})}
+                >
+                  <option value="tamil">தமிழ் (Tamil)</option>
+                  <option value="english">English</option>
+                </select>
+              </div>
+              <div className="modal-buttons">
+                <button type="button" className="btn-close btn-grad-secondary" onClick={() => setShowComplaintModal(false)}>Cancel</button>
+                <button type="submit" className="btn-send btn-grad-primary">Submit Complaint</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

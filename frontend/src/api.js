@@ -210,6 +210,11 @@ export const api = {
     return data;
   },
 
+  async getMyComplaints() {
+    const { data } = await http.get("/my-complaints");
+    return data;
+  },
+
   async getComplaintById(complaintId) {
     const { data } = await http.get(`/complaints/${complaintId}`);
     return data;

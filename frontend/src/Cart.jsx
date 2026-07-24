@@ -54,6 +54,7 @@ function Cart() {
       alert("Your cart is empty");
       return;
     }
+    // Navigate to checkout page instead of direct invoice
     navigate("/checkout");
   };
 

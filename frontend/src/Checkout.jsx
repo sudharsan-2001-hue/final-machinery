@@ -17,7 +17,6 @@ function Checkout() {
     shipping: 0,
     total: 0,
   });
-  const [paymentMethod, setPaymentMethod] = useState("cod");
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("scm_currentUser"));
@@ -61,7 +60,7 @@ function Checkout() {
     navigate("/address");
   };
 
-  const handlePlaceOrder = async () => {
+  const handlePlaceOrder = () => {
     if (!selectedAddress) {
       alert("Please select a delivery address");
       return;
@@ -72,132 +71,27 @@ function Checkout() {
       return;
     }
 
-    setLoading(true);
-    try {
-      if (paymentMethod === "cod") {
-        // Process COD order
-        const orderData = {
-          addressId: selectedAddress.id,
-          totalAmount: orderSummary.total,
-          paymentMethod: "Cash On Delivery",
-          item: { ...cartItems[0], price: cartItems[0].price || cartItems[0].offerPrice || cartItems[0].originalPrice },
-          shopId: cartItems[0].shopId || 1,
-          paymentDetails: {
-            orderStatus: "Pending",
-            paymentStatus: "Pending"
-          }
-        };
-        
-        const result = await api.createOrder(orderData);
-        
-        // Clear cart
-        localStorage.removeItem("scm_cart_items");
-        
-        // Store order for invoice
-        const invoiceData = {
-          orderId: result.orderNumber,
-          orderDate: new Date().toLocaleDateString("en-IN"),
-          customer: {
-            name: selectedAddress.fullName,
-            address: selectedAddress.addressLine1,
-            city: selectedAddress.city,
-            state: selectedAddress.state,
-            pincode: selectedAddress.pincode,
-            phone: selectedAddress.phoneNumber,
-            email: selectedAddress.email
-          },
-          items: cartItems,
-          totalAmount: orderSummary.total,
-          deliveryCharges: orderSummary.shipping,
-          paymentMethod: "Cash On Delivery",
-          expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString("en-IN")
-        };
-        localStorage.setItem("scm_last_order", JSON.stringify(invoiceData));
-        
-        navigate("/order");
-      } else {
-        // Razorpay payment flow
-        const orderData = {
-          addressId: selectedAddress.id,
-          totalAmount: orderSummary.total,
-          paymentMethod: "Razorpay",
-          item: { ...cartItems[0], price: cartItems[0].price || cartItems[0].offerPrice || cartItems[0].originalPrice },
-          shopId: cartItems[0].shopId || 1,
-          paymentDetails: {
-            orderStatus: "Preparing",
-            paymentStatus: "Completed"
-          }
-        };
-        
-        // Create Razorpay order
-        const razorpayOrder = await api.createRazorpayOrder(orderSummary.total);
-        
-        const options = {
-          key: "rzp_test_your_key_here", // Replace with actual key
-          amount: razorpayOrder.amount,
-          currency: "INR",
-          name: "Sudharsan Cottage Machinery",
-          description: "Machinery Purchase",
-          order_id: razorpayOrder.id,
-          handler: async function (response) {
-            try {
-              const paymentData = {
-                razorpay_order_id: razorpayOrder.id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                ...orderData
-              };
-              
-              const result = await api.verifyRazorpayPayment(paymentData);
-              
-              // Clear cart
-              localStorage.removeItem("scm_cart_items");
-              
-              // Store order for invoice
-              const invoiceData = {
-                orderId: result.orderNumber,
-                orderDate: new Date().toLocaleDateString("en-IN"),
-                customer: {
-                  name: selectedAddress.fullName,
-                  address: selectedAddress.addressLine1,
-                  city: selectedAddress.city,
-                  state: selectedAddress.state,
-                  pincode: selectedAddress.pincode,
-                  phone: selectedAddress.phoneNumber,
-                  email: selectedAddress.email
-                },
-                items: cartItems,
-                totalAmount: orderSummary.total,
-                deliveryCharges: orderSummary.shipping,
-                paymentMethod: "Razorpay",
-                paymentId: response.razorpay_payment_id,
-                expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString("en-IN")
-              };
-              localStorage.setItem("scm_last_order", JSON.stringify(invoiceData));
-              
-              navigate("/order");
-            } catch (err) {
-              alert("Payment verification failed");
-            }
-          },
-          prefill: {
-            name: selectedAddress.fullName,
-            email: selectedAddress.email,
-            contact: selectedAddress.phoneNumber
-          },
-          theme: {
-            color: "#3399cc"
-          }
-        };
-        
-        const rzp = new window.Razorpay(options);
-        rzp.open();
-      }
-    } catch (err) {
-      alert(err.message || "Failed to place order");
-    } finally {
-      setLoading(false);
-    }
+    // Store checkout data and navigate to payment page
+    const checkoutData = {
+      customer: {
+        name: selectedAddress.fullName,
+        address: selectedAddress.addressLine1,
+        city: selectedAddress.city,
+        state: selectedAddress.state,
+        pincode: selectedAddress.pincode,
+        phone: selectedAddress.phoneNumber,
+        email: selectedAddress.email
+      },
+      addressId: selectedAddress.id,
+      items: cartItems,
+      totalAmount: orderSummary.total,
+      deliveryCharges: orderSummary.shipping,
+      gst: orderSummary.gst,
+      subtotal: orderSummary.subtotal
+    };
+    
+    localStorage.setItem("scm_checkout", JSON.stringify(checkoutData));
+    navigate("/payment");
   };
 
   const handleLogout = () => {
@@ -288,31 +182,6 @@ function Checkout() {
               </div>
             </div>
 
-            <div className="checkout-section glass-card-base">
-              <h3>Payment Method</h3>
-              <div className="payment-methods">
-                <label className="payment-option">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="cod"
-                    checked={paymentMethod === "cod"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                  />
-                  <span>Cash On Delivery (COD)</span>
-                </label>
-                <label className="payment-option">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="razorpay"
-                    checked={paymentMethod === "razorpay"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                  />
-                  <span>Razorpay (Online Payment)</span>
-                </label>
-              </div>
-            </div>
           </div>
 
           <div className="checkout-right">
