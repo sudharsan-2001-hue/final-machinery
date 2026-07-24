@@ -187,6 +187,96 @@ router.get("/complaints", authenticate, requireAdmin, async (req, res) => {
   }
 });
 
+// Get customer complaints (for customers)
+router.get("/my-complaints", authenticate, async (req, res) => {
+  try {
+    const user = req.user;
+    const pool = await poolPromise;
+
+    const result = await pool
+      .request()
+      .input("customerId", sql.Int, user.id)
+      .query(`
+        SELECT * 
+        FROM Complaints
+        WHERE CustomerID = @customerId
+        ORDER BY CreatedDate DESC
+      `);
+
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("Get my complaints error:", err.message);
+    res.status(500).json({ message: "Failed to fetch complaints." });
+  }
+});
+
+// Upload voice reply for complaint
+router.post("/upload-voice-reply", authenticate, requireAdmin, async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    const fs = require('fs');
+    const path = require('path');
+    
+    console.log("Upload voice reply request received");
+    console.log("Files:", req.files);
+    console.log("Body:", req.body);
+    
+    if (!req.files || !req.files.audio) {
+      console.log("No audio file in request");
+      return res.status(400).json({ message: "Audio file is required." });
+    }
+
+    const audioFile = req.files.audio;
+    const complaintId = req.body.complaintId;
+
+    const uploadsDir = path.join(__dirname, '../uploads/voice-replies');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      console.log("Created voice-replies directory");
+    }
+
+    const filename = `complaint_${complaintId}_${Date.now()}.webm`;
+    const filePath = path.join(uploadsDir, filename);
+    const voiceUrl = `/uploads/voice-replies/${filename}`;
+
+    console.log("Saving audio file to:", filePath);
+    console.log("Voice URL:", voiceUrl);
+
+    audioFile.mv(filePath, (err) => {
+      if (err) {
+        console.error("Error saving audio file:", err);
+        return res.status(500).json({ message: "Failed to save audio file." });
+      }
+
+      console.log("Audio file saved successfully");
+
+      // Update complaint with voice URL
+      pool.request()
+        .input("id", sql.Int, complaintId)
+        .input("voiceReplyUrl", sql.NVarChar, voiceUrl)
+        .query(`
+          UPDATE Complaints
+          SET VoiceReplyUrl = @voiceReplyUrl
+          WHERE ComplaintID = @id
+        `)
+        .then(() => {
+          console.log("Voice URL updated in database:", voiceUrl);
+          res.json({ 
+            message: "Voice reply uploaded successfully.",
+            voiceUrl: voiceUrl
+          });
+        })
+        .catch((dbErr) => {
+          console.error("Error updating complaint:", dbErr);
+          res.status(500).json({ message: "Failed to update complaint with voice URL." });
+        });
+    });
+  } catch (err) {
+    console.error("Upload voice reply error:", err.message);
+    res.status(500).json({ message: "Failed to upload voice reply." });
+  }
+});
+
 // Update complaint with admin reply
 router.put("/complaints/:id/reply", authenticate, requireAdmin, async (req, res) => {
   const { id } = req.params;
@@ -197,6 +287,9 @@ router.put("/complaints/:id/reply", authenticate, requireAdmin, async (req, res)
   }
 
   try {
+    console.log("Saving admin reply for complaint:", id);
+    console.log("Admin reply text:", adminReply);
+    
     const pool = await poolPromise;
 
     await pool
@@ -212,10 +305,12 @@ router.put("/complaints/:id/reply", authenticate, requireAdmin, async (req, res)
         WHERE ComplaintID = @id
       `);
 
+    console.log("Admin reply saved successfully");
     res.json({ message: "Reply saved successfully." });
   } catch (err) {
     console.error("Update complaint error:", err.message);
-    res.status(500).json({ message: "Failed to save reply." });
+    console.error("Full error:", err);
+    res.status(500).json({ message: "Failed to save reply: " + err.message });
   }
 });
 
@@ -229,57 +324,39 @@ router.post("/complaints/:id/generate-voice", authenticate, requireAdmin, async 
   }
 
   try {
-    const fs = require('fs');
-    const path = require('path');
+    console.log("AI Voice Generation - Complaint ID:", id);
+    console.log("AI Voice Generation - Text:", text);
+    console.log("AI Voice Generation - Language:", language);
+
+    // For AI voice conversion, we'll use the text directly
+    // The frontend will use Web Speech API to play the voice
+    // This is more reliable than server-side TTS
     
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = path.join(__dirname, '../uploads/voice-replies');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    // Generate unique filename
-    const filename = `complaint_${id}_${Date.now()}.mp3`;
-    const filePath = path.join(uploadsDir, filename);
-    const voiceUrl = `/uploads/voice-replies/${filename}`;
-
-    // Determine language code
-    const langCode = language === 'english' ? 'en-US' : 'ta-IN';
-
-    // For now, we'll use a placeholder approach
-    // In production, integrate with Azure AI Speech or Google Cloud TTS
-    // This is a simplified version that creates a dummy file
-    
-    // TODO: Integrate with actual TTS service
-    // Example with Azure AI Speech:
-    // const speechConfig = speechsdk.SpeechConfig.fromSubscription(process.env.AZURE_SPEECH_KEY, process.env.AZURE_SPEECH_REGION);
-    // speechConfig.speechSynthesisLanguage = langCode;
-    // const audioConfig = speechsdk.AudioConfig.fromAudioFileOutput(filePath);
-    // const synthesizer = new speechsdk.SpeechSynthesizer(speechConfig, audioConfig);
-    // await synthesizer.speakTextAsync(text);
-
-    // For now, create a placeholder file
-    fs.writeFileSync(filePath, Buffer.from('placeholder'));
-
-    // Update complaint with voice URL
+    // Update complaint with voice text (will be used by frontend TTS)
     const pool = await poolPromise;
     await pool
       .request()
       .input("id", sql.Int, id)
-      .input("voiceReplyUrl", sql.NVarChar, voiceUrl)
+      .input("adminReply", sql.NVarChar, text)
+      .input("replyDate", sql.DateTime, new Date())
       .query(`
         UPDATE Complaints
-        SET VoiceReplyUrl = @voiceReplyUrl
+        SET AdminReply = @adminReply,
+            ReplyDate = @replyDate,
+            Status = 'Resolved'
         WHERE ComplaintID = @id
       `);
 
+    console.log("Admin reply saved successfully for AI voice generation");
+
     res.json({ 
-      message: "Voice generated successfully.",
-      voiceUrl: voiceUrl
+      message: "Reply saved successfully. Voice will be generated on customer side.",
+      success: true
     });
   } catch (err) {
     console.error("Generate voice error:", err.message);
-    res.status(500).json({ message: "Failed to generate voice." });
+    console.error("Full error:", err);
+    res.status(500).json({ message: "Failed to save reply: " + err.message });
   }
 });
 

@@ -5,6 +5,7 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const fileUpload = require('express-fileupload');
 
 const { poolPromise } = require("./db");
 const { notFoundHandler, errorHandler } = require("./middleware/errorHandler");
@@ -20,8 +21,9 @@ const shopRoutes = require("./routes/shopRoutes");
 
 const app = express();
 
-// Serve static files for product images
+// Serve static files for product images and voice replies
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/api/uploads", express.static(path.join(__dirname, "uploads")));
 
 const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
   .split(",")
@@ -42,6 +44,10 @@ app.use(
 
 app.use(helmet());
 app.use(express.json({ limit: "10mb" }));
+app.use(fileUpload({
+  createParentPath: true,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max file size
+}));
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
