@@ -13,6 +13,14 @@ function CustomerComplaints() {
   const [showComplaintModal, setShowComplaintModal] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   
+  // Voice Recording states
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [audioChunks, setAudioChunks] = useState([]);
+  const [isListening, setIsListening] = useState(false);
+  const [listeningField, setListeningField] = useState("");
+
   const [complaintForm, setComplaintForm] = useState({
     subject: "",
     description: "",
@@ -22,35 +30,106 @@ function CustomerComplaints() {
     language: "tamil"
   });
 
-  const speakText = (text) => {
+  const speakText = (text, language = 'english') => {
     if (!text) return;
-    
-    // Cancel any ongoing speech
+
     if (window.speechSynthesis.speaking) {
       window.speechSynthesis.cancel();
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US'; // Default to English
-    utterance.rate = 0.9; // Slightly slower for better comprehension
+    const isEnglish = language === 'english';
+    utterance.lang = isEnglish ? 'en-US' : 'ta-IN';
+    utterance.rate = isEnglish ? 1.0 : 0.9;
     utterance.pitch = 1;
 
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-      console.log("AI Voice started speaking");
-    };
+    const voices = window.speechSynthesis.getVoices();
+    if (isEnglish) {
+      const englishVoice = voices.find(voice => voice.lang.includes('en'));
+      if (englishVoice) utterance.voice = englishVoice;
+    } else {
+      const tamilVoice = voices.find(voice => voice.lang.includes('ta'));
+      if (tamilVoice) utterance.voice = tamilVoice;
+    }
 
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      console.log("AI Voice finished speaking");
-    };
-
-    utterance.onerror = (event) => {
-      setIsSpeaking(false);
-      console.error("AI Voice error:", event.error);
-    };
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
 
     window.speechSynthesis.speak(utterance);
+  };
+
+  const startSpeechRecognition = (targetField) => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice typing is not supported in this browser. Please try Google Chrome.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = complaintForm.language === 'english' ? 'en-US' : 'ta-IN';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setListeningField(targetField);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      setListeningField("");
+    };
+
+    recognition.onerror = (e) => {
+      console.error(e);
+      setIsListening(false);
+      setListeningField("");
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setComplaintForm(prev => ({
+        ...prev,
+        [targetField]: prev[targetField] ? prev[targetField] + " " + transcript : transcript
+      }));
+    };
+
+    recognition.start();
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks = [];
+
+      recorder.ondataavailable = (e) => {
+        chunks.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setRecordedAudioUrl(audioUrl);
+        setAudioChunks(chunks);
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Recording error:", err);
+      alert("Failed to access microphone. Please allow mic permissions.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      setIsRecording(false);
+    }
   };
 
   useEffect(() => {
@@ -68,17 +147,12 @@ function CustomerComplaints() {
     try {
       setLoading(true);
       const data = await api.getMyComplaints();
-      console.log("Loaded complaints:", data);
       setComplaints(data);
       setLoading(false);
-      
-      // Auto-select first complaint if available
       if (data.length > 0 && !selectedComplaint) {
-        console.log("Auto-selecting first complaint:", data[0]);
         setSelectedComplaint(data[0]);
       }
     } catch (err) {
-      console.error("Load complaints error:", err);
       setError("Failed to load complaints");
       setLoading(false);
     }
@@ -87,15 +161,8 @@ function CustomerComplaints() {
   const handleComplaintClick = async (complaintId) => {
     try {
       const complaint = await api.getComplaintById(complaintId);
-      console.log("Customer - Complaint details:", complaint);
-      console.log("Customer - AdminReply:", complaint.AdminReply);
-      console.log("Customer - ReplyDate:", complaint.ReplyDate);
-      console.log("Customer - VoiceReplyUrl:", complaint.VoiceReplyUrl);
-      console.log("Customer - VoiceReplyUrl type:", typeof complaint.VoiceReplyUrl);
-      console.log("Customer - VoiceReplyUrl exists:", !!complaint.VoiceReplyUrl);
       setSelectedComplaint(complaint);
     } catch (err) {
-      console.error("Customer - Load complaint details error:", err);
       setError("Failed to load complaint details");
     }
   };
@@ -103,33 +170,50 @@ function CustomerComplaints() {
   const handleComplaintSubmit = async (e) => {
     e.preventDefault();
     try {
-      const result = await api.sendComplaint(
+      let customerVoiceUrl = null;
+
+      // If user recorded a voice message, upload it first
+      if (recordedAudioUrl && audioChunks.length > 0) {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const formData = new FormData();
+        formData.append('audio', audioBlob, `voice_complaint_${Date.now()}.webm`);
+        const uploadResult = await api.uploadCustomerVoice(formData);
+        customerVoiceUrl = uploadResult.voiceUrl;
+      }
+
+      await api.sendComplaint(
         complaintForm.subject, 
         complaintForm.description, 
         complaintForm.orderId,
         complaintForm.complaintType,
         complaintForm.imageUrl,
-        complaintForm.language
+        complaintForm.language,
+        customerVoiceUrl
       );
-      alert("Complaint Accepted! Your complaint has been registered. We will resolve your complaint within 1 day.");
       
-      playTamilVoiceMessage();
+      alert("Complaint Accepted! Your complaint has been registered. We will resolve your complaint within 1 day.");
+      playTamilVoiceMessage(complaintForm.language);
       
       setComplaintForm({ subject: "", description: "", orderId: "", complaintType: "General", imageUrl: "", language: "tamil" });
+      setRecordedAudioUrl(null);
+      setAudioChunks([]);
       setShowComplaintModal(false);
       loadComplaints();
     } catch (err) {
-      alert("Failed to submit complaint. Please try again.");
+      alert(err.message || "Failed to submit complaint. Please try again.");
     }
   };
 
-  const playTamilVoiceMessage = () => {
+  const playTamilVoiceMessage = (language) => {
     if ('speechSynthesis' in window) {
-      const tamilMessage = "வணக்கம். Sudharsan Machinery Customer Support. உங்கள் புகார் வெற்றிகரமாக பதிவு செய்யப்பட்டுள்ளது. எங்கள் குழு விரைவில் அதை பரிசீலித்து உங்களை தொடர்புகொள்ளும். நன்றி.";
+      const isEnglish = language === 'english';
+      const msg = isEnglish 
+        ? "Hello, Sudharsan Machinery Customer Support. Your complaint has been registered successfully. Our team will review it and reply soon. Thank you."
+        : "வணக்கம். Sudharsan Machinery Customer Support. உங்கள் புகார் வெற்றிகரமாக பதிவு செய்யப்பட்டுள்ளது. எங்கள் குழு விரைவில் அதை பரிசீலித்து உங்களை தொடர்புகொள்ளும். நன்றி.";
       
-      const utterance = new SpeechSynthesisUtterance(tamilMessage);
-      utterance.lang = 'ta-IN';
-      utterance.rate = 0.9;
+      const utterance = new SpeechSynthesisUtterance(msg);
+      utterance.lang = isEnglish ? 'en-US' : 'ta-IN';
+      utterance.rate = isEnglish ? 1.0 : 0.9;
       utterance.pitch = 1;
       window.speechSynthesis.speak(utterance);
     }
@@ -253,54 +337,127 @@ function CustomerComplaints() {
                   </div>
 
                   <div className="complaint-subject-section">
-                    <h4>Subject</h4>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'between', width: '100%' }}>
+                      <h4>Subject</h4>
+                      <button 
+                        onClick={() => speakText(selectedComplaint.Subject, selectedComplaint.voiceLanguage || 'tamil')}
+                        className="btn-tts-speaker"
+                        title="Speak Subject"
+                        style={{ marginLeft: '10px', background: 'none', border: 'none', cursor: 'pointer', color: '#4CAF50' }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="18" height="18">
+                          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                          <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" />
+                        </svg>
+                      </button>
+                    </div>
                     <p>{selectedComplaint.Subject}</p>
                   </div>
 
                   <div className="complaint-description-section">
-                    <h4>Description</h4>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'between', width: '100%' }}>
+                      <h4>Description</h4>
+                      <button 
+                        onClick={() => speakText(selectedComplaint.Description, selectedComplaint.voiceLanguage || 'tamil')}
+                        className="btn-tts-speaker"
+                        title="Speak Description"
+                        style={{ marginLeft: '10px', background: 'none', border: 'none', cursor: 'pointer', color: '#4CAF50' }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="18" height="18">
+                          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                          <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" />
+                        </svg>
+                      </button>
+                    </div>
                     <p>{selectedComplaint.Description}</p>
                   </div>
 
-                  {/* Debug: Show VoiceReplyUrl and AdminReply values */}
-                  {process.env.NODE_ENV === 'development' && (
-                    <div style={{padding: '10px', background: 'rgba(255,255,0,0.1)', margin: '10px 0', fontSize: '12px'}}>
-                      <strong>Debug - VoiceReplyUrl:</strong> {selectedComplaint.VoiceReplyUrl || 'null'}<br/>
-                      <strong>Debug - AdminReply:</strong> {selectedComplaint.AdminReply || 'null'}<br/>
-                      <strong>Debug - ReplyDate:</strong> {selectedComplaint.ReplyDate || 'null'}
+                  {selectedComplaint.CustomerVoiceUrl && (
+                    <div className="voice-reply-section" style={{ marginTop: '15px' }}>
+                      <h4>Your Recorded Voice Message</h4>
+                      <audio
+                        controls
+                        className="audio-player"
+                        style={{ width: '100%', marginTop: '5px' }}
+                        onError={(e) => console.error("Customer audio playback error:", e)}
+                        onLoadStart={() => console.log("Customer audio loading:", selectedComplaint.CustomerVoiceUrl)}
+                      >
+                        <source src={selectedComplaint.CustomerVoiceUrl.startsWith('http') ? selectedComplaint.CustomerVoiceUrl : `${selectedComplaint.CustomerVoiceUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.CustomerVoiceUrl}`} type="audio/webm" />
+                        <source src={selectedComplaint.CustomerVoiceUrl.startsWith('http') ? selectedComplaint.CustomerVoiceUrl : `${selectedComplaint.CustomerVoiceUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.CustomerVoiceUrl}`} type="audio/mp3" />
+                        <source src={selectedComplaint.CustomerVoiceUrl.startsWith('http') ? selectedComplaint.CustomerVoiceUrl : `${selectedComplaint.CustomerVoiceUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.CustomerVoiceUrl}`} type="audio/wav" />
+                        Your browser does not support the audio element.
+                      </audio>
+                    </div>
+                  )}
+
+                  {selectedComplaint.VoiceReplyUrl && (
+                    <div className="voice-reply-section" style={{ marginTop: '15px' }}>
+                      <h4>Admin Recorded Voice Reply</h4>
+                      <audio
+                        controls
+                        className="audio-player"
+                        style={{ width: '100%', marginTop: '5px' }}
+                        onError={(e) => console.error("Audio playback error:", e)}
+                        onLoadStart={() => console.log("Audio loading:", selectedComplaint.VoiceReplyUrl)}
+                      >
+                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('http') ? selectedComplaint.VoiceReplyUrl : `${selectedComplaint.VoiceReplyUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.VoiceReplyUrl}`} type="audio/webm" />
+                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('http') ? selectedComplaint.VoiceReplyUrl : `${selectedComplaint.VoiceReplyUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.VoiceReplyUrl}`} type="audio/mp3" />
+                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('http') ? selectedComplaint.VoiceReplyUrl : `${selectedComplaint.VoiceReplyUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.VoiceReplyUrl}`} type="audio/wav" />
+                        Your browser does not support the audio element.
+                      </audio>
                     </div>
                   )}
 
                   {selectedComplaint.AdminReply && (
-                    <div className="voice-reply-section">
+                    <div className="voice-reply-section" style={{ marginTop: '15px' }}>
                       <h4>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="voice-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="voice-icon" style={{ width: '16px', marginRight: '5px' }}>
                           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
                           <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
                         </svg>
-                        Admin Voice Reply
+                        Admin AI Voice Reader
                       </h4>
-                      <button 
-                        onClick={() => speakText(selectedComplaint.AdminReply)}
+                      <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center' }}>
+                        <label style={{ fontSize: '13px', color: '#bbb', fontWeight: 'bold' }}>Select Language:</label>
+                        <select
+                          value={selectedComplaint.voiceLanguage || 'tamil'}
+                          onChange={(e) => setSelectedComplaint({...selectedComplaint, voiceLanguage: e.target.value})}
+                          style={{
+                            marginLeft: '10px',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            border: '1px solid #555',
+                            fontSize: '13px',
+                            fontWeight: 'bold',
+                            backgroundColor: '#222',
+                            color: 'white'
+                          }}
+                        >
+                          <option value="tamil">தமிழ் (Tamil)</option>
+                          <option value="english">English</option>
+                        </select>
+                      </div>
+                      <button
+                        onClick={() => speakText(selectedComplaint.AdminReply, selectedComplaint.voiceLanguage || 'tamil')}
                         disabled={isSpeaking}
                         className="voice-play-button"
                         style={{
-                          padding: '10px 20px',
+                          padding: '8px 16px',
                           backgroundColor: isSpeaking ? '#FF9800' : '#4CAF50',
                           color: 'white',
                           border: 'none',
                           borderRadius: '5px',
                           cursor: isSpeaking ? 'not-allowed' : 'pointer',
-                          marginTop: '10px',
-                          fontSize: '16px',
+                          marginTop: '5px',
+                          fontSize: '14px',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '8px'
+                          gap: '6px'
                         }}
                       >
                         {isSpeaking ? (
                           <>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
                               <rect x="6" y="4" width="4" height="16" />
                               <rect x="14" y="4" width="4" height="16" />
                             </svg>
@@ -308,11 +465,10 @@ function CustomerComplaints() {
                           </>
                         ) : (
                           <>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
                               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
                             </svg>
-                            Play Voice Reply
+                            Speak Admin Reply
                           </>
                         )}
                       </button>
@@ -320,8 +476,8 @@ function CustomerComplaints() {
                   )}
 
                   {selectedComplaint.AdminReply && (
-                    <div className="admin-reply-section">
-                      <h4>Admin Reply</h4>
+                    <div className="admin-reply-section" style={{ marginTop: '15px' }}>
+                      <h4>Admin Reply Text</h4>
                       <p>{selectedComplaint.AdminReply}</p>
                       {selectedComplaint.ReplyDate && (
                         <p className="reply-date">
@@ -332,8 +488,8 @@ function CustomerComplaints() {
                   )}
 
                   {!selectedComplaint.AdminReply && !selectedComplaint.VoiceReplyUrl && (
-                    <div className="pending-reply-section">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="pending-icon">
+                    <div className="pending-reply-section" style={{ marginTop: '20px' }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="pending-icon" style={{ width: '40px', color: '#ff9800' }}>
                         <circle cx="12" cy="12" r="10" />
                         <polyline points="12 6 12 12 16 14" />
                       </svg>
@@ -377,26 +533,129 @@ function CustomerComplaints() {
               </div>
               <div className="input-group">
                 <label>Subject</label>
-                <input 
-                  type="text" 
-                  className="glass-input" 
-                  required 
-                  placeholder="Brief description of the issue"
-                  value={complaintForm.subject}
-                  onChange={(e) => setComplaintForm({...complaintForm, subject: e.target.value})}
-                />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input 
+                    type="text" 
+                    className="glass-input" 
+                    required 
+                    placeholder="Brief description of the issue"
+                    value={complaintForm.subject}
+                    onChange={(e) => setComplaintForm({...complaintForm, subject: e.target.value})}
+                    style={{ flex: 1 }}
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => startSpeechRecognition('subject')}
+                    className={`btn-mic-type ${isListening && listeningField === 'subject' ? 'listening' : ''}`}
+                    title="Voice Typing"
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '5px',
+                      border: '1px solid #555',
+                      backgroundColor: isListening && listeningField === 'subject' ? '#ff3333' : '#333',
+                      color: 'white',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🎤
+                  </button>
+                </div>
               </div>
               <div className="input-group">
                 <label>Detailed Description</label>
-                <textarea 
-                  className="glass-input textarea-field" 
-                  required 
-                  rows="5" 
-                  placeholder="Please provide detailed information about your complaint..."
-                  value={complaintForm.description}
-                  onChange={(e) => setComplaintForm({...complaintForm, description: e.target.value})}
-                ></textarea>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  <textarea 
+                    className="glass-input textarea-field" 
+                    required 
+                    rows="5" 
+                    placeholder="Please provide detailed information about your complaint..."
+                    value={complaintForm.description}
+                    onChange={(e) => setComplaintForm({...complaintForm, description: e.target.value})}
+                    style={{ flex: 1 }}
+                  ></textarea>
+                  <button 
+                    type="button"
+                    onClick={() => startSpeechRecognition('description')}
+                    className={`btn-mic-type ${isListening && listeningField === 'description' ? 'listening' : ''}`}
+                    title="Voice Typing"
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '5px',
+                      border: '1px solid #555',
+                      backgroundColor: isListening && listeningField === 'description' ? '#ff3333' : '#333',
+                      color: 'white',
+                      cursor: 'pointer',
+                      marginTop: '5px'
+                    }}
+                  >
+                    🎤
+                  </button>
+                </div>
               </div>
+
+              {/* Voice Recording Section */}
+              <div className="input-group voice-recording-container" style={{ margin: '15px 0', padding: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '5px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Record Voice Message (Optional)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {!isRecording && !recordedAudioUrl && (
+                    <button
+                      type="button"
+                      onClick={startRecording}
+                      className="btn-record-audio"
+                      style={{
+                        padding: '8px 15px',
+                        backgroundColor: '#ff3333',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      🔴 Record
+                    </button>
+                  )}
+                  {isRecording && (
+                    <button
+                      type="button"
+                      onClick={stopRecording}
+                      className="btn-stop-recording"
+                      style={{
+                        padding: '8px 15px',
+                        backgroundColor: '#333',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        animation: 'pulse 1s infinite'
+                      }}
+                    >
+                      ⏹️ Stop
+                    </button>
+                  )}
+                  {recordedAudioUrl && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
+                      <audio src={recordedAudioUrl} controls style={{ height: '36px', flex: 1 }} />
+                      <button
+                        type="button"
+                        onClick={() => { setRecordedAudioUrl(null); setAudioChunks([]); }}
+                        style={{
+                          padding: '8px 12px',
+                          backgroundColor: '#555',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="input-group">
                 <label>Voice Language</label>
                 <select 

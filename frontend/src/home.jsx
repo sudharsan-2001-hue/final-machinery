@@ -14,6 +14,7 @@ function Home() {
   const [showEmailDropdown, setShowEmailDropdown] = useState(false);
   const [showComplaintModal, setShowComplaintModal] = useState(false);
   const [showDeliveryDropdown, setShowDeliveryDropdown] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
   
   // Complaint form state
   const [complaintForm, setComplaintForm] = useState({
@@ -47,20 +48,42 @@ function Home() {
         // Get all machinery list
         const machinery = await api.getProducts();
         setFeaturedMachines(machinery.slice(0, 4));
+      } catch (err) {
+        console.error("Error loading products:", err);
+        setFeaturedMachines([]);
+      }
 
+      try {
         // Get orders list to count user orders
         const orders = await api.getUserOrders(user.id);
         setOrdersCount(orders.length);
-
-        // Update cart count
-        const cart = JSON.parse(localStorage.getItem("scm_cart_items")) || [];
-        setCartCount(cart.length);
       } catch (err) {
-        console.error("Error loading dashboard data:", err);
+        console.error("Error loading orders:", err);
+        setOrdersCount(0);
       }
+
+      // Update cart count from localStorage
+      const cart = JSON.parse(localStorage.getItem("scm_cart_items")) || [];
+      setCartCount(cart.length);
     }
     loadData();
   }, [navigate]);
+
+  // Auto-sliding carousel logic
+  useEffect(() => {
+    const slideInterval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % 5);
+    }, 4000); // Change slide every 4 seconds
+    return () => clearInterval(slideInterval);
+  }, []);
+
+  const carouselImages = [
+    "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=1920&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1920&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=1920&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=1920&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1581092918056-0c4c3acd3782?w=1920&auto=format&fit=crop"
+  ];
 
   const handleLogout = () => {
     clearSession();
@@ -92,32 +115,42 @@ function Home() {
       );
       alert("Complaint Accepted! Your complaint has been registered. We will resolve your complaint within 1 day.");
       
-      // Play Tamil voice message using Web Speech API
-      playTamilVoiceMessage();
+      // Play voice confirmation in selected language
+      playVoiceMessage(complaintForm.language);
       
       setComplaintForm({ subject: "", description: "", orderId: "", complaintType: "General", imageUrl: "", language: "tamil" });
       setShowComplaintModal(false);
     } catch (err) {
-      alert("Failed to submit complaint. Please try again.");
+      alert(err.message || "Failed to submit complaint. Please try again.");
     }
   };
 
-  const playTamilVoiceMessage = () => {
+  const playVoiceMessage = (language) => {
     if ('speechSynthesis' in window) {
-      const tamilMessage = "வணக்கம். Sudharsan Machinery Customer Support. உங்கள் புகார் வெற்றிகரமாக பதிவு செய்யப்பட்டுள்ளது. எங்கள் குழு விரைவில் அதை பரிசீலித்து உங்களை தொடர்புகொள்ளும். நன்றி.";
-      
-      const utterance = new SpeechSynthesisUtterance(tamilMessage);
-      utterance.lang = 'ta-IN';
-      utterance.rate = 0.9;
+      const isEnglish = language === "english";
+      const message = isEnglish
+        ? "Hello, Sudharsan Machinery Customer Support. Your complaint has been registered successfully. Our team will review it and contact you soon. Thank you."
+        : "வணக்கம். Sudharsan Machinery Customer Support. உங்கள் புகார் வெற்றிகரமாக பதிவு செய்யப்பட்டுள்ளது. எங்கள் குழு விரைவில் அதை பரிசீலித்து உங்களை தொடர்புகொள்ளும். நன்றி.";
+
+      const utterance = new SpeechSynthesisUtterance(message);
+      utterance.lang = isEnglish ? 'en-US' : 'ta-IN';
+      utterance.rate = isEnglish ? 1.0 : 0.9;
       utterance.pitch = 1;
-      
-      // Try to find a Tamil voice
+
+      // Load voices and set appropriate voice
       const voices = window.speechSynthesis.getVoices();
-      const tamilVoice = voices.find(voice => voice.lang.includes('ta'));
-      if (tamilVoice) {
-        utterance.voice = tamilVoice;
+      if (isEnglish) {
+        const englishVoice = voices.find(voice => voice.lang.includes('en'));
+        if (englishVoice) {
+          utterance.voice = englishVoice;
+        }
+      } else {
+        const tamilVoice = voices.find(voice => voice.lang.includes('ta'));
+        if (tamilVoice) {
+          utterance.voice = tamilVoice;
+        }
       }
-      
+
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -146,11 +179,11 @@ function Home() {
                   <strong>Sudharsan Cottage Machinery</strong>
                 </div>
                 <div className="phone-dropdown-content">
-                  <a href="tel:+919876543210" className="phone-number-link">
+                  <a href="tel:+917397135792" className="phone-number-link">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="phone-link-icon">
                       <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                     </svg>
-                    +91 98765 43210
+                    +91 73971 35792
                   </a>
                 </div>
               </div>
@@ -167,12 +200,12 @@ function Home() {
                   <strong>Sudharsan Cottage Machinery</strong>
                 </div>
                 <div className="email-dropdown-content">
-                  <a href="mailto:SudharsanMachineryshop@gmail.com" className="email-link">
+                  <a href="mailto:27gsudharsan@gmail.com" className="email-link">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="email-link-icon">
                       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                       <polyline points="22,6 12,13 2,6" />
                     </svg>
-                    SudharsanMachineryshop@gmail.com
+                    27gsudharsan@gmail.com
                   </a>
                 </div>
               </div>
@@ -274,21 +307,26 @@ function Home() {
           </div>
         </section>
 
-        {/* Advertisement Banner */}
-        <section className="advertisement-banner glass-card-base animate-scale">
-          <div className="banner-content">
-            <div className="banner-text">
-              <h2 className="banner-title">Welcome to Sudharsan Cottage Machinery</h2>
-              <p className="banner-subtitle">Premium Quality Industrial Machinery for Your Business Success</p>
-              <button className="banner-cta-btn" onClick={() => navigate("/price")}>
-                Explore Products
-              </button>
-            </div>
-            <div className="banner-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="banner-svg">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65-1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
+        {/* Full-width Auto-sliding Carousel */}
+        <section className="carousel-section">
+          <div className="carousel-container">
+            {carouselImages.map((image, index) => (
+              <div
+                key={index}
+                className={`carousel-slide ${index === currentSlide ? 'active' : ''}`}
+                style={{ backgroundImage: `url(${image})` }}
+              >
+                <div className="carousel-overlay"></div>
+              </div>
+            ))}
+            <div className="carousel-dots">
+              {carouselImages.map((_, index) => (
+                <button
+                  key={index}
+                  className={`carousel-dot ${index === currentSlide ? 'active' : ''}`}
+                  onClick={() => setCurrentSlide(index)}
+                />
+              ))}
             </div>
           </div>
         </section>
@@ -424,11 +462,11 @@ function Home() {
           <div className="footer-brand">
             <h4>Sudharsan Cottage Machinery</h4>
             <p>High-quality manufacturing, packaging, and processing machinery for cottage industries.</p>
-            <a href="tel:+919876543210" className="footer-contact-link">
+            <a href="tel:+917397135792" className="footer-contact-link">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="footer-phone-icon">
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
               </svg>
-              +91 98765 43210
+              +91 73971 35792
             </a>
           </div>
           <div className="footer-links">
@@ -536,14 +574,15 @@ function Home() {
                 ></textarea>
               </div>
               <div className="input-group">
-                <label>Voice Language</label>
-                <select 
+                <label style={{ fontWeight: 'bold' }}>Voice Language</label>
+                <select
                   className="glass-input"
                   value={complaintForm.language}
                   onChange={(e) => setComplaintForm({...complaintForm, language: e.target.value})}
+                  style={{ fontWeight: 'bold' }}
                 >
-                  <option value="tamil">தமிழ் (Tamil)</option>
-                  <option value="english">English</option>
+                  <option value="tamil" style={{ fontWeight: 'bold' }}>தமிழ் (Tamil)</option>
+                  <option value="english" style={{ fontWeight: 'bold' }}>English</option>
                 </select>
               </div>
               <div className="modal-buttons">

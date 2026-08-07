@@ -71,12 +71,12 @@ function AdminHome() {
         
         // Calculate stats from orders directly
         const totalOrders = orders.length;
-        const pendingOrders = orders.filter(ord => (ord.status || ord.OrderStatus) === 'Pending').length;
-        const completedOrders = orders.filter(ord => (ord.status || ord.OrderStatus) === 'Delivered').length;
+        const pendingOrders = orders.filter(ord => (ord.orderStatus || ord.status || ord.OrderStatus) === 'pending').length;
+        const completedOrders = orders.filter(ord => (ord.orderStatus || ord.status || ord.OrderStatus) === 'delivered').length;
         
         // Calculate revenue from completed/delivered orders only
         const completedOrderAmounts = orders
-          .filter(ord => (ord.status || ord.OrderStatus) === 'Delivered')
+          .filter(ord => (ord.orderStatus || ord.status || ord.OrderStatus) === 'delivered')
           .map(ord => ord.totalAmount || ord.TotalAmount || 0);
         const totalRevenue = completedOrderAmounts.reduce((sum, amount) => sum + Number(amount), 0);
 

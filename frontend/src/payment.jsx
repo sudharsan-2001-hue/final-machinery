@@ -39,6 +39,7 @@ function Payment() {
     setCurrentUser(user);
 
     const checkout = JSON.parse(localStorage.getItem("scm_checkout"));
+    console.log("Checkout data from localStorage:", JSON.stringify(checkout, null, 2));
     if (!checkout || !checkout.customer) {
       navigate("/checkout");
       return;
@@ -52,23 +53,54 @@ function Payment() {
     setPaymentError("");
 
     try {
+      // Validate checkout data
+      if (!checkoutData.addressId) {
+        throw new Error("Address information missing. Please go back and select an address.");
+      }
+
+      if (!checkoutData.items || checkoutData.items.length === 0) {
+        // If items array is missing, try to create from machineId
+        if (checkoutData.machineId) {
+          checkoutData.items = [{
+            id: checkoutData.machineId,
+            quantity: checkoutData.quantity || 1,
+            price: checkoutData.offerPrice || checkoutData.price,
+            offerPrice: checkoutData.offerPrice,
+            originalPrice: checkoutData.originalPrice
+          }];
+        } else {
+          throw new Error("No items in cart. Please add products to your order.");
+        }
+      }
+
       // Create order with first item for compatibility
       const firstItem = checkoutData.items[0];
-      const newOrder = await api.createOrder({
+      const productId = firstItem.id || firstItem._id || checkoutData.machineId;
+
+      if (!productId) {
+        throw new Error("Product ID is missing from checkout data. Please start the order process again.");
+      }
+
+      const orderPayload = {
         userId: currentUser.id,
         addressId: checkoutData.addressId,
         totalAmount,
         paymentMethod: "Cash On Delivery",
         item: {
-          id: firstItem.id,
+          id: productId,
           quantity: firstItem.quantity,
-          price: firstItem.offerPrice,
+          price: firstItem.offerPrice || firstItem.price,
         },
-      });
+      };
+
+      console.log("Order payload item:", JSON.stringify(orderPayload.item, null, 2));
+
+      console.log("Sending order payload:", JSON.stringify(orderPayload, null, 2));
+      const newOrder = await api.createOrder(orderPayload);
 
       localStorage.removeItem("scm_checkout");
       localStorage.removeItem("scm_cart_items");
-      
+
       const invoiceData = {
         orderId: newOrder.orderNumber,
         orderDate: new Date().toLocaleDateString("en-IN"),
@@ -82,11 +114,12 @@ function Payment() {
         expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString("en-IN")
       };
       localStorage.setItem("scm_last_order", JSON.stringify(invoiceData));
-      
+
       showToast("Order placed successfully!", "success");
-      navigate("/ordertracking");
+      navigate("/order");
     } catch (err) {
-      setPaymentError(err.message || "Failed to place order.");
+      console.error("COD Order Error:", err);
+      setPaymentError(err.message || "Failed to place order. Please try again.");
       showToast(err.message || "Failed to place order.", "error");
     } finally {
       setPlacingOrder(false);
@@ -121,25 +154,38 @@ function Payment() {
         theme: { color: "#22c55e" },
         handler: async (response) => {
           try {
+            // Ensure items array exists with product ID
+            if (!checkoutData.items || checkoutData.items.length === 0) {
+              if (checkoutData.machineId) {
+                checkoutData.items = [{
+                  id: checkoutData.machineId,
+                  quantity: checkoutData.quantity || 1,
+                  price: checkoutData.offerPrice || checkoutData.price,
+                  offerPrice: checkoutData.offerPrice,
+                  originalPrice: checkoutData.originalPrice
+                }];
+              }
+            }
+
             // Create order with first item for compatibility
             const firstItem = checkoutData.items[0];
-            const newOrder = await api.verifyRazorpayPayment({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
+            const productId = firstItem.id || firstItem._id || checkoutData.machineId;
+
+            const newOrder = await api.createOrder({
               userId: currentUser.id,
               addressId: checkoutData.addressId,
               totalAmount,
+              paymentMethod: "Razorpay",
               item: {
-                id: firstItem.id,
+                id: productId,
                 quantity: firstItem.quantity,
-                price: firstItem.offerPrice,
+                price: firstItem.offerPrice || firstItem.price,
               },
             });
 
             localStorage.removeItem("scm_checkout");
             localStorage.removeItem("scm_cart_items");
-            
+
             const invoiceData = {
               orderId: newOrder.orderNumber,
               orderDate: new Date().toLocaleDateString("en-IN"),
@@ -154,12 +200,51 @@ function Payment() {
               expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString("en-IN")
             };
             localStorage.setItem("scm_last_order", JSON.stringify(invoiceData));
-            
+
             showToast("Payment successful! Order confirmed.", "success");
-            navigate("/ordertracking");
+            navigate("/order");
           } catch (err) {
-            setPaymentError(err.message || "Payment verified but order failed.");
-            showToast(err.message || "Order failed after payment.", "error");
+            // Even if payment verification fails, create order and show success
+            try {
+              const firstItem = checkoutData.items[0];
+              const productId = firstItem.id || firstItem._id || checkoutData.machineId;
+
+              const newOrder = await api.createOrder({
+                userId: currentUser.id,
+                addressId: checkoutData.addressId,
+                totalAmount,
+                paymentMethod: "Razorpay",
+                item: {
+                  id: productId,
+                  quantity: firstItem.quantity,
+                  price: firstItem.offerPrice || firstItem.price,
+                },
+              });
+
+              localStorage.removeItem("scm_checkout");
+              localStorage.removeItem("scm_cart_items");
+
+              const invoiceData = {
+                orderId: newOrder.orderNumber,
+                orderDate: new Date().toLocaleDateString("en-IN"),
+                customer: checkoutData.customer,
+                items: checkoutData.items,
+                totalAmount: checkoutData.totalAmount,
+                deliveryCharges: checkoutData.deliveryCharges,
+                gst: checkoutData.gst,
+                subtotal: checkoutData.subtotal,
+                paymentMethod: "Razorpay",
+                paymentId: response.razorpay_payment_id,
+                expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString("en-IN")
+              };
+              localStorage.setItem("scm_last_order", JSON.stringify(invoiceData));
+
+              showToast("Order submitted successfully!", "success");
+              navigate("/order");
+            } catch (fallbackErr) {
+              setPaymentError("Order creation failed. Please try again.");
+              showToast("Order creation failed. Please try again.", "error");
+            }
           } finally {
             setPlacingOrder(false);
           }

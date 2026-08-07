@@ -1,6 +1,5 @@
 const crypto = require("crypto");
 const Razorpay = require("razorpay");
-const { sql, poolPromise } = require("../db");
 const { createOrderRecord } = require("./orderController");
 
 function getRazorpayInstance() {

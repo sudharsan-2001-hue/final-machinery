@@ -26,13 +26,14 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Login Route */}
-        <Route path="/" element={<Login />} />
+        {/* Public Routes - No login required */}
+        <Route path="/" element={<Price />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/change-password" element={<ChangePassword />} />
 
-        {/* Customer Routes */}
+        {/* Customer Routes - Login required for these */}
         <Route path="/home" element={<ProtectedRoute allowedRoles={["customer", "shopadmin"]}><Home /></ProtectedRoute>} />
-        <Route path="/price" element={<ProtectedRoute allowedRoles={["customer"]}><Price /></ProtectedRoute>} />
+        <Route path="/price" element={<Price />} />
         <Route path="/buy" element={<ProtectedRoute allowedRoles={["customer"]}><Buy /></ProtectedRoute>} />
         <Route path="/outofstock" element={<ProtectedRoute allowedRoles={["customer"]}><OutOfStock /></ProtectedRoute>} />
         <Route path="/address" element={<ProtectedRoute allowedRoles={["customer"]}><Address /></ProtectedRoute>} />
@@ -51,7 +52,7 @@ function App() {
         <Route path="/orders" element={<ProtectedRoute allowedRoles={["admin", "shopadmin"]}><ShopOrders /></ProtectedRoute>} />
         <Route path="/complaints" element={<ProtectedRoute allowedRoles={["admin", "shopadmin"]}><AdminComplaints /></ProtectedRoute>} />
 
-        {/* Fallback to Login */}
+        {/* Fallback to home page */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

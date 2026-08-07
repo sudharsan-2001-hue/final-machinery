@@ -45,7 +45,7 @@ http.interceptors.response.use(
   (error) => {
     if (!error.response) {
       throw new Error(
-        "Cannot reach the server. Make sure the backend is running on port 5000 and SQL Server is connected."
+        "Cannot reach the server. Make sure the backend is running on port 5000 and MongoDB is connected."
       );
     }
     const message = error.response.data?.message || "Something went wrong.";
@@ -89,13 +89,13 @@ export const api = {
     return data;
   },
 
-  async register(email, password, phone, fullName) {
-    const { data } = await http.post("/auth/register", { email, password, phone, fullName });
+  async register(email, password, phone, fullName, customerType) {
+    const { data } = await http.post("/auth/register", { email, password, phone, fullName, customerType });
     return data;
   },
 
-  async registerSeller(email, password, phone, fullName, gstNumber, businessName) {
-    const { data } = await http.post("/auth/register-seller", { email, password, phone, fullName, gstNumber, businessName });
+  async registerSeller(email, password, phone, fullName, gstNumber, businessName, profileImage) {
+    const { data } = await http.post("/auth/register-seller", { email, password, phone, fullName, gstNumber, businessName, profileImage });
     return data;
   },
 
@@ -200,8 +200,17 @@ export const api = {
     return data;
   },
 
-  async sendComplaint(subject, description, orderId, complaintType, imageUrl, language) {
-    const { data } = await http.post("/complaints", { subject, description, orderId, complaintType, imageUrl, language });
+  async sendComplaint(subject, description, orderId, complaintType, imageUrl, language, customerVoiceUrl) {
+    const { data } = await http.post("/complaints", { subject, description, orderId, complaintType, imageUrl, language, customerVoiceUrl });
+    return data;
+  },
+
+  async uploadCustomerVoice(formData) {
+    const { data } = await http.post("/upload-customer-voice", formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
     return data;
   },
 

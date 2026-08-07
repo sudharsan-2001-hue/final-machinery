@@ -19,6 +19,11 @@ function AdminComplaints() {
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [audioChunks, setAudioChunks] = useState([]);
 
+  const [contactMessages, setContactMessages] = useState([]);
+  const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("scm_currentUser"));
     const token = localStorage.getItem("scm_token");
@@ -28,6 +33,16 @@ function AdminComplaints() {
     }
     setCurrentUser(user);
     loadComplaints();
+    loadNotifications();
+    
+    // Add outside click listener for notification dropdown
+    const handleOutsideClick = (e) => {
+      if (!e.target.closest('.notification-bell') && !e.target.closest('.notification-dropdown')) {
+        setShowNotificationDropdown(false);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
   }, [navigate]);
 
   const loadComplaints = async () => {
@@ -40,6 +55,86 @@ function AdminComplaints() {
       setError("Failed to load complaints");
       setLoading(false);
     }
+  };
+
+  const loadNotifications = async () => {
+    try {
+      const messages = await api.getContactMessages();
+      setContactMessages(messages || []);
+    } catch (err) {
+      console.error("Failed to load messages:", err);
+    }
+  };
+
+  const handleMarkAsRead = async (messageId) => {
+    try {
+      await api.markMessageAsRead(messageId);
+      loadNotifications();
+    } catch (err) {
+      console.error("Error marking message as read:", err);
+    }
+  };
+
+  const speakText = (text, language = 'english') => {
+    if (!text) return;
+
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    const isEnglish = language === 'english';
+    utterance.lang = isEnglish ? 'en-US' : 'ta-IN';
+    utterance.rate = isEnglish ? 1.0 : 0.9;
+    utterance.pitch = 1;
+
+    const voices = window.speechSynthesis.getVoices();
+    if (isEnglish) {
+      const englishVoice = voices.find(voice => voice.lang.includes('en'));
+      if (englishVoice) utterance.voice = englishVoice;
+    } else {
+      const tamilVoice = voices.find(voice => voice.lang.includes('ta'));
+      if (tamilVoice) utterance.voice = tamilVoice;
+    }
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const startSpeechRecognition = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice typing is not supported in this browser. Please try Google Chrome.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = voiceLanguage === 'english' ? 'en-US' : 'ta-IN';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.onerror = (e) => {
+      console.error(e);
+      setIsListening(false);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setReplyText(prev => prev ? prev + " " + transcript : transcript);
+    };
+
+    recognition.start();
   };
 
   const handleComplaintClick = async (complaintId) => {
@@ -183,7 +278,90 @@ function AdminComplaints() {
         <div className="header-title-container">
           <h2 className="header-page-title">Customer Complaints</h2>
         </div>
-        <div className="header-actions">
+        <div className="header-actions" style={{ display: 'flex', alignItems: 'center' }}>
+          
+          {/* Notification Bell Dropdown */}
+          <div className="notification-bell" onClick={() => setShowNotificationDropdown(!showNotificationDropdown)} style={{ position: 'relative', cursor: 'pointer', marginRight: '15px' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="bell-icon" style={{ width: '22px', height: '22px', color: 'white' }}>
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            {contactMessages.filter(msg => !msg.IsRead).length > 0 && (
+              <span className="notification-badge" style={{
+                position: 'absolute',
+                top: '-5px',
+                right: '-5px',
+                background: '#ff3333',
+                color: 'white',
+                borderRadius: '50%',
+                width: '18px',
+                height: '18px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '10px',
+                fontWeight: 'bold'
+              }}>
+                {contactMessages.filter(msg => !msg.IsRead).length}
+              </span>
+            )}
+            {showNotificationDropdown && (
+              <div className="notification-dropdown glass-card-base" style={{
+                position: 'absolute',
+                top: '35px',
+                right: '0',
+                width: '320px',
+                background: '#1a1a2e',
+                border: '1px solid #333',
+                borderRadius: '8px',
+                padding: '10px',
+                zIndex: 100,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+              }} onClick={(e) => e.stopPropagation()}>
+                <div className="notification-header" style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', paddingBottom: '8px', marginBottom: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: '13px', color: '#fff' }}>Customer Notifications</h4>
+                  <span className="notification-count" style={{ fontSize: '11px', color: '#888' }}>{contactMessages.length} total</span>
+                </div>
+                <div className="notification-list" style={{ maxHeight: '240px', overflowY: 'auto' }}>
+                  {contactMessages.length === 0 ? (
+                    <div className="no-notifications" style={{ textAlign: 'center', padding: '15px 0', color: '#888' }}>
+                      <p style={{ margin: 0, fontSize: '12px' }}>No new notifications</p>
+                    </div>
+                  ) : (
+                    contactMessages.slice(0, 5).map((msg) => (
+                      <div key={msg.MessageID} className={`notification-item ${msg.IsRead ? 'read' : 'unread'}`} style={{
+                        padding: '8px',
+                        borderBottom: '1px solid #222',
+                        fontSize: '11px',
+                        color: msg.IsRead ? '#888' : '#fff',
+                        backgroundColor: msg.IsRead ? 'transparent' : 'rgba(255,255,255,0.03)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        textAlign: 'left'
+                      }}>
+                        <div style={{ flex: 1, marginRight: '8px' }}>
+                          <strong style={{ display: 'block', color: '#4CAF50' }}>{msg.CustomerName}</strong>
+                          <span style={{ fontSize: '9px', color: '#777' }}>{msg.CustomerEmail}</span>
+                          <p style={{ margin: '3px 0 0 0', color: '#aaa', fontSize: '11px' }}>{msg.Message.substring(0, 45)}...</p>
+                        </div>
+                        {!msg.IsRead && (
+                          <button 
+                            className="mark-read-btn"
+                            onClick={() => handleMarkAsRead(msg.MessageID)}
+                            style={{ background: 'none', border: 'none', color: '#4CAF50', cursor: 'pointer', fontWeight: 'bold', padding: '5px' }}
+                          >
+                            ✓
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <button className="header-back-btn" onClick={() => navigate("/adminhome")} title="Back to Dashboard">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="header-icon-svg">
               <line x1="19" y1="12" x2="5" y2="12" />
@@ -284,41 +462,96 @@ function AdminComplaints() {
                   </div>
 
                   <div className="complaint-subject-section">
-                    <h4>Subject</h4>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <h4>Subject</h4>
+                      <button 
+                        onClick={() => speakText(selectedComplaint.Subject, 'english')}
+                        className="btn-tts-speaker"
+                        title="Speak Subject"
+                        style={{ marginLeft: '10px', background: 'none', border: 'none', cursor: 'pointer', color: '#4CAF50' }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16">
+                          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                          <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" />
+                        </svg>
+                      </button>
+                    </div>
                     <p>{selectedComplaint.Subject}</p>
                   </div>
 
                   <div className="complaint-description-section">
-                    <h4>Description</h4>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <h4>Description</h4>
+                      <button 
+                        onClick={() => speakText(selectedComplaint.Description, 'english')}
+                        className="btn-tts-speaker"
+                        title="Speak Description"
+                        style={{ marginLeft: '10px', background: 'none', border: 'none', cursor: 'pointer', color: '#4CAF50' }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16">
+                          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                          <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" />
+                        </svg>
+                      </button>
+                    </div>
                     <p>{selectedComplaint.Description}</p>
                   </div>
 
                   {selectedComplaint.CustomerVoiceUrl && (
-                    <div className="voice-reply-section">
+                    <div className="voice-reply-section" style={{ marginTop: '15px' }}>
                       <h4>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="voice-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="voice-icon" style={{ width: '16px', marginRight: '5px' }}>
                           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
                           <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
                         </svg>
-                        Customer Complaint Voice
+                        Customer Voice Message
                       </h4>
-                      <audio controls className="audio-player">
-                        <source src={selectedComplaint.CustomerVoiceUrl} type="audio/mpeg" />
+                      <audio
+                        controls
+                        className="audio-player"
+                        style={{ width: '100%', marginTop: '5px' }}
+                        onError={(e) => console.error("Customer audio error:", e)}
+                        onLoadStart={() => console.log("Customer audio loading:", selectedComplaint.CustomerVoiceUrl)}
+                      >
+                        <source src={selectedComplaint.CustomerVoiceUrl.startsWith('http') ? selectedComplaint.CustomerVoiceUrl : `${selectedComplaint.CustomerVoiceUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.CustomerVoiceUrl}`} type="audio/webm" />
+                        <source src={selectedComplaint.CustomerVoiceUrl.startsWith('http') ? selectedComplaint.CustomerVoiceUrl : `${selectedComplaint.CustomerVoiceUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.CustomerVoiceUrl}`} type="audio/mp3" />
+                        <source src={selectedComplaint.CustomerVoiceUrl.startsWith('http') ? selectedComplaint.CustomerVoiceUrl : `${selectedComplaint.CustomerVoiceUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.CustomerVoiceUrl}`} type="audio/wav" />
                         Your browser does not support the audio element.
                       </audio>
                     </div>
                   )}
 
                   <div className="complaint-reply-section">
-                    <h4>Admin Reply</h4>
-                    <textarea
-                      className="reply-textarea"
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      placeholder="Type your reply in Tamil or English..."
-                      rows="6"
-                    />
-                    <div className="language-selector">
+                    <h4>Write Reply</h4>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                      <textarea
+                        className="reply-textarea"
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        placeholder="Type your reply in Tamil or English..."
+                        rows="6"
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={startSpeechRecognition}
+                        className={`btn-mic-type ${isListening ? 'listening' : ''}`}
+                        title="Voice Typing"
+                        style={{
+                          padding: '12px',
+                          borderRadius: '8px',
+                          border: '1px solid #555',
+                          backgroundColor: isListening ? '#ff3333' : '#333',
+                          color: 'white',
+                          cursor: 'pointer',
+                          fontSize: '18px',
+                          marginTop: '5px'
+                        }}
+                      >
+                        🎤
+                      </button>
+                    </div>
+                    <div className="language-selector" style={{ marginTop: '10px' }}>
                       <label>Voice Language:</label>
                       <select 
                         className="language-dropdown"
@@ -331,7 +564,7 @@ function AdminComplaints() {
                     </div>
                     
                     {/* Voice Recorder Section */}
-                    <div className="voice-recorder-section">
+                    <div className="voice-recorder-section" style={{ marginTop: '15px' }}>
                       <div className="recorder-controls">
                         {!isRecording && !recordedAudioUrl && (
                           <button
@@ -411,10 +644,16 @@ function AdminComplaints() {
 
                   {selectedComplaint.VoiceReplyUrl && (
                     <div className="voice-reply-section">
-                      <h4>Voice Reply</h4>
-                      <audio controls className="audio-player">
-                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('/api') ? selectedComplaint.VoiceReplyUrl : `/api${selectedComplaint.VoiceReplyUrl}`} type="audio/mpeg" />
-                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('/api') ? selectedComplaint.VoiceReplyUrl : `/api${selectedComplaint.VoiceReplyUrl}`} type="audio/webm" />
+                      <h4>Voice Reply Playback</h4>
+                      <audio
+                        controls
+                        className="audio-player"
+                        onError={(e) => console.error("Voice reply audio error:", e)}
+                        onLoadStart={() => console.log("Voice reply audio loading:", selectedComplaint.VoiceReplyUrl)}
+                      >
+                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('http') ? selectedComplaint.VoiceReplyUrl : `${selectedComplaint.VoiceReplyUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.VoiceReplyUrl}`} type="audio/webm" />
+                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('http') ? selectedComplaint.VoiceReplyUrl : `${selectedComplaint.VoiceReplyUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.VoiceReplyUrl}`} type="audio/mp3" />
+                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('http') ? selectedComplaint.VoiceReplyUrl : `${selectedComplaint.VoiceReplyUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.VoiceReplyUrl}`} type="audio/wav" />
                         Your browser does not support the audio element.
                       </audio>
                     </div>
@@ -422,7 +661,7 @@ function AdminComplaints() {
 
                   {selectedComplaint.AdminReply && (
                     <div className="existing-reply-section">
-                      <h4>Existing Reply</h4>
+                      <h4>Existing Reply Text</h4>
                       <p>{selectedComplaint.AdminReply}</p>
                       {selectedComplaint.ReplyDate && (
                         <p className="reply-date">

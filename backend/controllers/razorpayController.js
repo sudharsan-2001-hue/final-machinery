@@ -1,6 +1,6 @@
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
-const { sql, poolPromise } = require("../db");
+const { createOrderRecord } = require("./orderController");
 
 // Initialize Razorpay instance lazily
 let razorpay = null;
@@ -99,75 +99,27 @@ async function verifyRazorpayPayment(req, res) {
       return res.status(400).json({ message: "Payment not successful." });
     }
 
-    const pool = await poolPromise;
-
-    // Generate prefixed order number
-    const orderNumber = `ORD${Date.now()}`;
-
-    // Generate prefixed payment ID
-    const paymentId = `PAY${Date.now()}`;
-
-    // Create order first
-    const orderResult = await pool
-      .request()
-      .input("userId", sql.Int, userId)
-      .input("addressId", sql.Int, addressId)
-      .input("orderNumber", sql.NVarChar, orderNumber)
-      .input("totalAmount", sql.Decimal(18, 2), Number(totalAmount))
-      .input("paymentMethod", sql.NVarChar, "Razorpay")
-      .input("orderStatus", sql.NVarChar, "Processing")
-      .query(`
-        INSERT INTO Orders (UserID, AddressID, OrderNumber, TotalAmount, PaymentMethod, OrderStatus, OrderDate)
-        OUTPUT INSERTED.OrderID, INSERTED.OrderNumber, INSERTED.TotalAmount, INSERTED.OrderStatus
-        VALUES (@userId, @addressId, @orderNumber, @totalAmount, @paymentMethod, @orderStatus, GETDATE())
-      `);
-
-    const orderId = orderResult.recordset[0].OrderID;
-
-    // Insert order item
-    await pool
-      .request()
-      .input("orderId", sql.Int, orderId)
-      .input("productId", sql.Int, item.id)
-      .input("quantity", sql.Int, item.quantity)
-      .input("unitPrice", sql.Decimal(18, 2), Number(item.price))
-      .input("totalPrice", sql.Decimal(18, 2), Number(item.price) * Number(item.quantity))
-      .query(`
-        INSERT INTO OrderItems (OrderID, ProductID, Quantity, UnitPrice, TotalPrice, CreatedDate)
-        VALUES (@orderId, @productId, @quantity, @unitPrice, @totalPrice, GETDATE())
-      `);
-
-    // Store payment in database with prefixed payment ID
-    await pool
-      .request()
-      .input("orderId", sql.Int, orderId)
-      .input("transactionId", sql.NVarChar, razorpay_payment_id)
-      .input("paymentId", sql.NVarChar, paymentId)
-      .input("amount", sql.Decimal(18, 2), Number(totalAmount))
-      .input("paymentMethod", sql.NVarChar, "Razorpay")
-      .input("paymentStatus", sql.NVarChar, "Completed")
-      .query(`
-        INSERT INTO Payments (OrderID, TransactionID, PaymentMethod, PaymentStatus, Amount, PaymentDate)
-        VALUES (@orderId, @transactionId, @paymentMethod, @paymentStatus, @amount, GETDATE())
-      `);
-
-    // Update product stock
-    await pool
-      .request()
-      .input("productId", sql.Int, item.id)
-      .input("quantity", sql.Int, item.quantity)
-      .query(`
-        UPDATE MachineryProducts
-        SET StockQuantity = StockQuantity - @quantity,
-            Status = CASE WHEN StockQuantity - @quantity <= 0 THEN 'Out of Stock' ELSE 'Active' END,
-            UpdatedDate = GETDATE()
-        WHERE ProductID = @productId
-      `);
+    // Create order using the existing order creation function
+    const orderResult = await createOrderRecord({
+      userId: userId || req.user?.id,
+      addressId,
+      totalAmount,
+      paymentMethod: "Razorpay Online",
+      item,
+      paymentDetails: {
+        paymentStatus: "paid",
+        orderStatus: "preparing",
+        transactionId: razorpay_payment_id,
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        razorpaySignature: razorpay_signature,
+      },
+    });
 
     res.json({
       message: "Payment verified successfully.",
       paymentStatus: "Completed",
-      order: orderResult.recordset[0],
+      order: orderResult,
     });
   } catch (err) {
     console.error("Razorpay payment verification error:", err.message);
@@ -191,33 +143,30 @@ async function handlePaymentFailure(req, res) {
       amount,
     } = req.body;
 
-    const pool = await poolPromise;
+    const Order = require("../models/Order");
+    const Payment = require("../models/Payment");
+
+    // Find order by order number
+    const order = await Order.findOne({ orderNumber: order_id });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found." });
+    }
 
     // Store failed payment
-    await pool
-      .request()
-      .input("orderId", sql.Int, order_id)
-      .input("razorpayOrderId", sql.NVarChar, razorpay_order_id)
-      .input("razorpayPaymentId", sql.NVarChar, razorpay_payment_id)
-      .input("transactionId", sql.NVarChar, razorpay_payment_id)
-      .input("amount", sql.Decimal(18, 2), Number(amount))
-      .input("paymentMethod", sql.NVarChar, "Razorpay")
-      .input("paymentStatus", sql.NVarChar, "Failed")
-      .query(`
-        INSERT INTO Payments (OrderID, TransactionID, PaymentMethod, PaymentStatus, Amount, PaymentDate)
-        VALUES (@orderId, @transactionId, @paymentMethod, @paymentStatus, @amount, GETDATE())
-      `);
+    await Payment.create({
+      orderId: order._id,
+      customerId: order.customerId,
+      shopId: order.shopId,
+      amount: Number(amount),
+      paymentMethod: "razorpay",
+      paymentStatus: "failed",
+      transactionId: razorpay_payment_id,
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id
+    });
 
     // Update order payment status
-    await pool
-      .request()
-      .input("orderId", sql.Int, order_id)
-      .input("orderStatus", sql.NVarChar, "Cancelled")
-      .query(`
-        UPDATE Orders 
-        SET OrderStatus = @orderStatus, UpdatedDate = GETDATE()
-        WHERE OrderID = @orderId
-      `);
+    await Order.findByIdAndUpdate(order._id, { orderStatus: "cancelled" });
 
     res.json({
       message: "Payment failure recorded.",
@@ -236,22 +185,17 @@ async function getPaymentDetails(req, res) {
   try {
     const { paymentId } = req.params;
 
-    const pool = await poolPromise;
-    const result = await pool
-      .request()
-      .input("paymentId", sql.Int, paymentId)
-      .query(`
-        SELECT p.*, o.OrderNumber, o.TotalAmount, o.OrderStatus
-        FROM Payments p
-        INNER JOIN Orders o ON p.OrderID = o.OrderID
-        WHERE p.PaymentID = @paymentId
-      `);
+    const Payment = require("../models/Payment");
+    const Order = require("../models/Order");
 
-    if (!result.recordset[0]) {
+    const payment = await Payment.findById(paymentId)
+      .populate('orderId', 'orderNumber totalAmount orderStatus');
+
+    if (!payment) {
       return res.status(404).json({ message: "Payment not found." });
     }
 
-    res.json(result.recordset[0]);
+    res.json(payment);
   } catch (err) {
     console.error("Get payment details error:", err.message);
     res.status(500).json({ message: "Failed to fetch payment details." });
@@ -265,15 +209,19 @@ async function getOrderPayments(req, res) {
   try {
     const { orderId } = req.params;
 
-    const pool = await poolPromise;
-    const result = await pool
-      .request()
-      .input("orderId", sql.Int, orderId)
-      .query(`
-        SELECT * FROM Payments WHERE OrderID = @orderId ORDER BY PaymentDate DESC
-      `);
+    const Payment = require("../models/Payment");
+    const Order = require("../models/Order");
 
-    res.json(result.recordset);
+    // Find order by order number first
+    const order = await Order.findOne({ orderNumber: orderId });
+    if (!order) {
+      return res.json([]);
+    }
+
+    const payments = await Payment.find({ orderId: order._id })
+      .sort({ createdAt: -1 });
+
+    res.json(payments);
   } catch (err) {
     console.error("Get order payments error:", err.message);
     res.status(500).json({ message: "Failed to fetch order payments." });
@@ -288,40 +236,28 @@ async function refundPayment(req, res) {
     const { paymentId } = req.params;
     const { amount, reason } = req.body;
 
-    // Fetch payment details
-    const pool = await poolPromise;
-    const paymentResult = await pool
-      .request()
-      .input("paymentId", sql.Int, paymentId)
-      .query("SELECT * FROM Payments WHERE PaymentID = @paymentId");
+    const Payment = require("../models/Payment");
 
-    const payment = paymentResult.recordset[0];
+    // Fetch payment details
+    const payment = await Payment.findById(paymentId);
     if (!payment) {
       return res.status(404).json({ message: "Payment not found." });
     }
 
-    if (payment.PaymentStatus !== "Completed") {
+    if (payment.paymentStatus !== "paid") {
       return res.status(400).json({ message: "Only completed payments can be refunded." });
     }
 
     // Initiate refund via Razorpay
     const razorpayInstance = getRazorpayInstance();
-    const refundAmount = amount ? amount * 100 : payment.Amount * 100;
-    const refund = await razorpayInstance.payments.refund(payment.TransactionID, {
+    const refundAmount = amount ? amount * 100 : payment.amount * 100;
+    const refund = await razorpayInstance.payments.refund(payment.transactionId, {
       amount: refundAmount,
       notes: { reason: reason || "Customer requested refund" },
     });
 
     // Update payment status
-    await pool
-      .request()
-      .input("paymentId", sql.Int, paymentId)
-      .input("paymentStatus", sql.NVarChar, "Refunded")
-      .query(`
-        UPDATE Payments 
-        SET PaymentStatus = @paymentStatus, UpdatedDate = GETDATE()
-        WHERE PaymentID = @paymentId
-      `);
+    await Payment.findByIdAndUpdate(paymentId, { paymentStatus: "refunded" });
 
     res.json({
       message: "Refund initiated successfully.",

@@ -1,5 +1,14 @@
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
+const fs = require("fs");
+
+const envPath = path.join(__dirname, ".env");
+console.log("ENV Path:", envPath);
+console.log("ENV Exists:", fs.existsSync(envPath));
+
+require("dotenv").config({ path: envPath });
+
+console.log("Loaded URI:", process.env.MONGODB_URI);
 
 const express = require("express");
 const cors = require("cors");
@@ -7,7 +16,7 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const fileUpload = require('express-fileupload');
 
-const { poolPromise } = require("./db");
+const connectDB = require("./config/db");
 const { notFoundHandler, errorHandler } = require("./middleware/errorHandler");
 
 const authRoutes = require("./routes/authRoutes");
@@ -25,6 +34,20 @@ const app = express();
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/uploads", express.static(path.join(__dirname, "uploads")));
 
+// Ensure upload directories exist
+const uploadDirs = [
+  path.join(__dirname, "uploads"),
+  path.join(__dirname, "uploads/customer-voices"),
+  path.join(__dirname, "uploads/voice-replies"),
+  path.join(__dirname, "uploads/products")
+];
+uploadDirs.forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log("Created directory:", dir);
+  }
+});
+
 const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
   .split(",")
   .map((o) => o.trim());
@@ -32,10 +55,13 @@ const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
 app.use(
   cors({
     origin(origin, callback) {
+      console.log("Request Origin:", origin);
+      console.log("Allowed Origins:", allowedOrigins);
+
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
@@ -63,9 +89,12 @@ const apiLimiter = rateLimit({
 
 app.get("/api/health", async (req, res) => {
   try {
-    const pool = await poolPromise;
-    await pool.request().query("SELECT 1 AS ok");
-    res.json({ status: "ok", database: "connected", timestamp: new Date().toISOString() });
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState === 1) {
+      res.json({ status: "ok", database: "connected", timestamp: new Date().toISOString() });
+    } else {
+      res.status(503).json({ status: "error", database: "disconnected", message: "MongoDB not connected" });
+    }
   } catch (err) {
     res.status(503).json({ status: "error", database: "disconnected", message: err.message });
   }
@@ -86,7 +115,14 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Backend server running on port ${PORT}`);
-  console.log("RAZORPAY_KEY_ID:", process.env.RAZORPAY_KEY_ID);
+// Connect to MongoDB and start server
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Backend server running on port ${PORT}`);
+    console.log("RAZORPAY_KEY_ID:", process.env.RAZORPAY_KEY_ID);
+  });
+}).catch(err => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
 });
+

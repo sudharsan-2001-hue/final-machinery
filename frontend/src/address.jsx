@@ -14,11 +14,13 @@ function Address() {
   const [email, setEmail] = useState("");
   const [streetAddress, setStreetAddress] = useState("");
   const [city, setCity] = useState("");
+  const [district, setDistrict] = useState("");
   const [stateName, setStateName] = useState("");
   const [pincode, setPincode] = useState("");
   const [saveAddress, setSaveAddress] = useState(true);
 
   const [errors, setErrors] = useState({});
+  const [successMsg, setSuccessMsg] = useState("");
 
   useEffect(() => {
     // 1. Session validation
@@ -69,6 +71,7 @@ function Address() {
 
     if (!streetAddress.trim()) tempErrors.address = "Shipping address is required.";
     if (!city.trim()) tempErrors.city = "City is required.";
+    if (!district.trim()) tempErrors.district = "District is required.";
     if (!stateName.trim()) tempErrors.state = "State is required.";
 
     // Pincode validation (6 digits)
@@ -85,6 +88,7 @@ function Address() {
 
   const handleNext = async (e) => {
     e.preventDefault();
+    setSuccessMsg("");
     if (!validateForm()) return;
 
     try {
@@ -95,9 +99,12 @@ function Address() {
         email,
         addressLine1: streetAddress,
         city,
+        district,
         state: stateName,
         pincode
       });
+
+      setSuccessMsg("Address saved successfully!");
 
       const addressDetails = {
         name,
@@ -105,6 +112,7 @@ function Address() {
         email,
         address: streetAddress,
         city,
+        district,
         state: stateName,
         pincode
       };
@@ -115,6 +123,22 @@ function Address() {
         addressId: savedAddress.id,
         customer: addressDetails
       };
+
+      // Ensure items array is preserved with product IDs
+      if (!updatedCheckout.items || updatedCheckout.items.length === 0) {
+        // If items are missing, recreate from machineId
+        if (updatedCheckout.machineId) {
+          updatedCheckout.items = [{
+            id: updatedCheckout.machineId,
+            quantity: updatedCheckout.quantity || 1,
+            price: updatedCheckout.offerPrice || updatedCheckout.price,
+            offerPrice: updatedCheckout.offerPrice,
+            originalPrice: updatedCheckout.originalPrice
+          }];
+        }
+      }
+
+      console.log("Updated checkout data in address.jsx:", JSON.stringify(updatedCheckout, null, 2));
       localStorage.setItem("scm_checkout", JSON.stringify(updatedCheckout));
 
       // Save to profile in session user if checked
@@ -125,15 +149,19 @@ function Address() {
           email,
           address: streetAddress,
           city,
+          district,
           state: stateName,
           pincode
         };
         localStorage.setItem("scm_currentUser", JSON.stringify(updatedCurrentUser));
       }
 
-      navigate("/payment");
+      // Navigate to payment after showing success message
+      setTimeout(() => {
+        navigate("/payment");
+      }, 1500);
     } catch (err) {
-      alert(err.message || "Failed to save address to database.");
+      setErrors((prev) => ({ ...prev, submit: err.message || "Failed to save address to database." }));
     }
   };
 
@@ -187,6 +215,9 @@ function Address() {
         <div className="address-container glass-card-base">
           <h2 className="address-form-title">Enter Delivery Details</h2>
           <p className="address-form-subtitle">Please provide your industrial facility shipping destination.</p>
+
+          {successMsg && <div className="alert alert-success">{successMsg}</div>}
+          {errors.submit && <div className="alert alert-error">{errors.submit}</div>}
 
           <form onSubmit={handleNext} className="address-form-grid">
             <div className="form-item span-full">
@@ -247,6 +278,18 @@ function Address() {
                 className={`glass-input ${errors.city ? "input-error" : ""}`}
               />
               {errors.city && <span className="error-text">{errors.city}</span>}
+            </div>
+
+            <div className="form-item">
+              <label>District</label>
+              <input
+                type="text"
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
+                placeholder="e.g. Coimbatore District"
+                className={`glass-input ${errors.district ? "input-error" : ""}`}
+              />
+              {errors.district && <span className="error-text">{errors.district}</span>}
             </div>
 
             <div className="form-item">

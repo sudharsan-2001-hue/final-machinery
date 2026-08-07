@@ -111,12 +111,12 @@ function MachineryUpload() {
 
     try {
       await api.addProduct({
-        name,
+        productName: name,
         description,
-        originalPrice: Number(originalPrice),
+        price: Number(originalPrice),
         offerPrice: offerPrice ? Number(offerPrice) : Number(originalPrice),
         stock: Number(stock),
-        category,
+        categoryId: category,
         image: imageSource
       });
 
@@ -187,6 +187,7 @@ function MachineryUpload() {
           <p className="upload-form-subtitle">Register new equipment models for clients to purchase.</p>
 
           {successMsg && <div className="alert alert-success">{successMsg}</div>}
+          {errors.submit && <div className="alert alert-error">{errors.submit}</div>}
 
           <form onSubmit={handleSave} className="upload-form-grid">
             <div className="form-item span-full">

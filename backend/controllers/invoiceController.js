@@ -1,4 +1,5 @@
-const { sql, poolPromise } = require("../db");
+const Order = require("../models/Order");
+const User = require("../models/User");
 
 /**
  * Generate Invoice for an Order
@@ -8,43 +9,18 @@ async function generateInvoice(req, res) {
     const { orderId } = req.params;
     const userId = req.user.id;
 
-    const pool = await poolPromise;
-
     // Check if order exists and belongs to user
-    const orderResult = await pool
-      .request()
-      .input("orderId", sql.Int, orderId)
-      .input("userId", sql.Int, userId)
-      .query(`
-        SELECT o.*, u.FullName, u.PhoneNumber, u.Email,
-               a.FullName AS AddressName, a.AddressLine1, a.AddressLine2, 
-               a.City, a.State, a.Pincode, a.Country
-        FROM Orders o
-        INNER JOIN Users u ON o.UserID = u.UserID
-        INNER JOIN CustomerAddresses a ON o.AddressID = a.AddressID
-        WHERE o.OrderID = @orderId AND o.UserID = @userId
-      `);
+    const order = await Order.findOne({ orderNumber: orderId, customerId: userId })
+      .populate('customerId', 'name email mobile')
+      .populate('products.productId', 'productName image');
 
-    const order = orderResult.recordset[0];
     if (!order) {
       return res.status(404).json({ message: "Order not found." });
     }
 
-    // Return order details as invoice (since Invoices table doesn't exist in schema)
-    // Fetch order items
-    const itemsResult = await pool
-      .request()
-      .input("orderId", sql.Int, orderId)
-      .query(`
-        SELECT oi.*, p.MachineName AS ProductName
-        FROM OrderItems oi
-        INNER JOIN MachineryProducts p ON oi.ProductID = p.ProductID
-        WHERE oi.OrderID = @orderId
-      `);
-
     res.status(201).json({
       invoice: order,
-      items: itemsResult.recordset,
+      items: order.products,
     });
   } catch (err) {
     console.error("Generate invoice error:", err.message);
@@ -60,42 +36,18 @@ async function getInvoice(req, res) {
     const { invoiceId } = req.params;
     const userId = req.user.id;
 
-    const pool = await poolPromise;
+    // Fetch order as invoice
+    const order = await Order.findOne({ orderNumber: invoiceId, customerId: userId })
+      .populate('customerId', 'name email mobile')
+      .populate('products.productId', 'productName image');
 
-    // Fetch order as invoice (since Invoices table doesn't exist)
-    const orderResult = await pool
-      .request()
-      .input("orderId", sql.Int, invoiceId)
-      .input("userId", sql.Int, userId)
-      .query(`
-        SELECT o.*, u.FullName AS CustomerName, u.PhoneNumber AS CustomerPhone, 
-               u.Email AS CustomerEmail,
-               a.AddressLine1, a.AddressLine2, a.City, a.State, a.Pincode, a.Country
-        FROM Orders o
-        INNER JOIN Users u ON o.UserID = u.UserID
-        INNER JOIN CustomerAddresses a ON o.AddressID = a.AddressID
-        WHERE o.OrderID = @orderId AND o.UserID = @userId
-      `);
-
-    const order = orderResult.recordset[0];
     if (!order) {
       return res.status(404).json({ message: "Invoice not found." });
     }
 
-    // Fetch order items
-    const itemsResult = await pool
-      .request()
-      .input("orderId", sql.Int, invoiceId)
-      .query(`
-        SELECT oi.*, p.MachineName AS ProductName
-        FROM OrderItems oi
-        INNER JOIN MachineryProducts p ON oi.ProductID = p.ProductID
-        WHERE oi.OrderID = @orderId
-      `);
-
     res.json({
       invoice: order,
-      items: itemsResult.recordset,
+      items: order.products,
     });
   } catch (err) {
     console.error("Get invoice error:", err.message);
@@ -110,18 +62,10 @@ async function getUserInvoices(req, res) {
   try {
     const userId = req.user.id;
 
-    const pool = await poolPromise;
-    const result = await pool
-      .request()
-      .input("userId", sql.Int, userId)
-      .query(`
-        SELECT o.* 
-        FROM Orders o
-        WHERE o.UserID = @userId
-        ORDER BY o.OrderDate DESC
-      `);
+    const orders = await Order.find({ customerId: userId })
+      .sort({ orderedAt: -1 });
 
-    res.json(result.recordset);
+    res.json(orders);
   } catch (err) {
     console.error("Get user invoices error:", err.message);
     res.status(500).json({ message: "Failed to fetch invoices." });
@@ -136,20 +80,20 @@ async function updateInvoiceStatus(req, res) {
     const { invoiceId } = req.params;
     const { status } = req.body;
 
-    if (!status || !["Pending", "Processing", "Shipped", "Delivered", "Cancelled"].includes(status)) {
+    const validStatuses = ["pending", "confirmed", "preparing", "shipped", "delivered", "cancelled"];
+    if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({ message: "Invalid order status." });
     }
 
-    const pool = await poolPromise;
-    await pool
-      .request()
-      .input("orderId", sql.Int, invoiceId)
-      .input("status", sql.NVarChar, status)
-      .query(`
-        UPDATE Orders 
-        SET OrderStatus = @status, UpdatedDate = GETDATE()
-        WHERE OrderID = @orderId
-      `);
+    const order = await Order.findOneAndUpdate(
+      { orderNumber: invoiceId },
+      { orderStatus: status },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found." });
+    }
 
     res.json({ message: "Order status updated successfully." });
   } catch (err) {
@@ -165,13 +109,9 @@ async function deleteInvoice(req, res) {
   try {
     const { invoiceId } = req.params;
 
-    const pool = await poolPromise;
-    const result = await pool
-      .request()
-      .input("orderId", sql.Int, invoiceId)
-      .query("DELETE FROM Orders WHERE OrderID = @orderId");
+    const order = await Order.findOneAndDelete({ orderNumber: invoiceId });
 
-    if (result.rowsAffected[0] === 0) {
+    if (!order) {
       return res.status(404).json({ message: "Order not found." });
     }
 

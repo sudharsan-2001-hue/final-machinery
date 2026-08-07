@@ -20,8 +20,10 @@ function Login() {
   const [regEmail, setRegEmail] = useState("");
   const [regPhone, setRegPhone] = useState("");
   const [regFullName, setRegFullName] = useState("");
+  const [regCustomerType, setRegCustomerType] = useState("individual");
   const [regGSTNumber, setRegGSTNumber] = useState("");
   const [regBusinessName, setRegBusinessName] = useState("");
+  const [regProfileImage, setRegProfileImage] = useState("");
 
   const [forgotIdentifier, setForgotIdentifier] = useState("");
   const [forgotNewPassword, setForgotNewPassword] = useState("");
@@ -96,9 +98,9 @@ function Login() {
 
     setLoading(true);
     try {
-      const data = await api.register(regEmail, regPassword, regPhone, regFullName);
-      showToast("Registration successful!", "success");
-      setSuccess("Registration successful! You can now log in.");
+      const data = await api.register(regEmail, regPassword, regPhone, regFullName, regCustomerType);
+      showToast("Successfully registered!", "success");
+      setSuccess("Successfully registered! You can now log in.");
       setFormMode("login");
       setIdentifier(regEmail);
       setPassword(regPassword);
@@ -129,11 +131,11 @@ function Login() {
 
     setLoading(true);
     try {
-      const data = await api.registerSeller(regEmail, regPassword, regPhone, regFullName, regGSTNumber, regBusinessName);
-      showToast("Admin registration successful!", "success");
-      setSuccess("Admin registration successful! You can now log in.");
+      const data = await api.registerSeller(regEmail, regPassword, regPhone, regFullName, regGSTNumber, regBusinessName, regProfileImage);
+      showToast("Shop Admin registration successful!", "success");
+      setSuccess("Shop Admin registration successful! You can now log in.");
       setFormMode("login");
-      setUserRole("admin");
+      setUserRole("shopadmin");
       setIdentifier(regEmail);
       setPassword(regPassword);
     } catch (err) {
@@ -248,7 +250,12 @@ function Login() {
                 New customer?{" "}
                 <span className="link-text" onClick={() => { setFormMode("register"); resetMessages(); }}>Register here</span>
               </p>
-            ) : null}
+            ) : (
+              <p className="toggle-form-text">
+                New Shop Admin?{" "}
+                <span className="link-text" onClick={() => { setFormMode("sellerRegister"); resetMessages(); }}>Register here</span>
+              </p>
+            )}
           </form>
         )}
 
@@ -265,6 +272,19 @@ function Login() {
             <div className="input-group">
               <label>Phone Number</label>
               <input type="tel" value={regPhone} onChange={(e) => setRegPhone(e.target.value)} placeholder="10-digit number" className="glass-input" required disabled={loading} />
+            </div>
+            <div className="input-group">
+              <label>Customer Type</label>
+              <select 
+                value={regCustomerType} 
+                onChange={(e) => setRegCustomerType(e.target.value)} 
+                className="glass-input" 
+                required 
+                disabled={loading}
+              >
+                <option value="individual">Individual</option>
+                <option value="business">Business</option>
+              </select>
             </div>
             <div className="input-group">
               <label>Password</label>
@@ -305,6 +325,30 @@ function Login() {
             <div className="input-group">
               <label>Business Name (Optional)</label>
               <input type="text" value={regBusinessName} onChange={(e) => setRegBusinessName(e.target.value)} placeholder="Enter business name" className="glass-input" disabled={loading} />
+            </div>
+            <div className="input-group">
+              <label>Profile Image (Optional)</label>
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      setRegProfileImage(reader.result);
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }} 
+                className="glass-input" 
+                disabled={loading} 
+              />
+              {regProfileImage && (
+                <div className="image-preview" style={{ marginTop: '10px', maxWidth: '100px', maxHeight: '100px' }}>
+                  <img src={regProfileImage} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} />
+                </div>
+              )}
             </div>
             <button type="submit" className="login-submit-btn btn-grad-primary" disabled={loading}>
               {loading ? <><span className="spinner-inline"></span>Registering...</> : "Register Admin"}

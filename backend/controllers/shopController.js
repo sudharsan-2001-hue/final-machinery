@@ -1,29 +1,21 @@
-const { sql, poolPromise } = require("../db");
+const Shop = require("../models/User");
 
-function mapShop(row) {
+function mapShop(shop) {
   return {
-    id: row.ShopID,
-    name: row.ShopName,
-    description: row.ShopDescription,
-    image: row.ShopImage,
-    ownerId: row.OwnerUserID,
-    status: row.Status,
-    createdDate: row.CreatedDate,
+    id: shop._id,
+    name: shop.name,
+    email: shop.email,
+    mobile: shop.mobile,
+    role: shop.role,
+    status: shop.status,
+    createdAt: shop.createdAt,
   };
 }
 
 async function getAllShops(req, res) {
   try {
-    const pool = await poolPromise;
-    const result = await pool
-      .request()
-      .query(`
-        SELECT ShopID, ShopName, ShopDescription, ShopImage, OwnerUserID, Status, CreatedDate
-        FROM Shops
-        WHERE Status = 'Active'
-        ORDER BY ShopName
-      `);
-    res.json(result.recordset.map(mapShop));
+    const shops = await Shop.find({ role: "seller", status: "active" }).sort({ name: 1 });
+    res.json(shops.map(mapShop));
   } catch (err) {
     console.error("Get shops error:", err.message);
     res.status(500).json({ message: "Failed to fetch shops." });
@@ -32,20 +24,12 @@ async function getAllShops(req, res) {
 
 async function getShopById(req, res) {
   try {
-    const pool = await poolPromise;
-    const result = await pool
-      .request()
-      .input("id", sql.Int, req.params.id)
-      .query(`
-        SELECT ShopID, ShopName, ShopDescription, ShopImage, OwnerUserID, Status, CreatedDate
-        FROM Shops
-        WHERE ShopID = @id AND Status = 'Active'
-      `);
+    const shop = await Shop.findOne({ _id: req.params.id, role: "seller", status: "active" });
 
-    if (!result.recordset[0]) {
+    if (!shop) {
       return res.status(404).json({ message: "Shop not found." });
     }
-    res.json(mapShop(result.recordset[0]));
+    res.json(mapShop(shop));
   } catch (err) {
     console.error("Get shop error:", err.message);
     res.status(500).json({ message: "Failed to fetch shop." });
@@ -53,83 +37,62 @@ async function getShopById(req, res) {
 }
 
 async function createShop(req, res) {
-  const { name, description, image } = req.body;
+  const { name, email, mobile, password, address, district, state, pincode, gstNumber, shopImage } = req.body;
 
-  if (!name) {
-    return res.status(400).json({ message: "Shop name is required." });
+  if (!name || !email || !mobile || !password) {
+    return res.status(400).json({ message: "Name, email, mobile, and password are required." });
   }
 
   try {
-    const pool = await poolPromise;
-    const result = await pool
-      .request()
-      .input("name", sql.NVarChar, name.trim())
-      .input("description", sql.NVarChar, description || "")
-      .input("image", sql.NVarChar, image || "")
-      .input("ownerId", sql.Int, req.user?.id || null)
-      .query(`
-        INSERT INTO Shops (ShopName, ShopDescription, ShopImage, OwnerUserID, Status)
-        OUTPUT INSERTED.ShopID, INSERTED.ShopName, INSERTED.ShopDescription, INSERTED.ShopImage, INSERTED.OwnerUserID, INSERTED.Status, INSERTED.CreatedDate
-        VALUES (@name, @description, @image, @ownerId, 'Active')
-      `);
+    const shopId = `SHOP${Date.now()}`;
+    const shop = await Shop.create({
+      name: name,
+      email: email.trim().toLowerCase(),
+      mobile: mobile,
+      password: password,
+      role: "seller",
+      status: "active",
+      address: address,
+      district: district,
+      state: state,
+      pincode: pincode,
+      gstNumber: gstNumber,
+      profileImage: shopImage
+    });
 
-    res.status(201).json(mapShop(result.recordset[0]));
+    res.status(201).json(mapShop(shop));
   } catch (err) {
     console.error("Create shop error:", err.message);
+    if (err.code === 11000) {
+      return res.status(409).json({ message: "Email or mobile already registered." });
+    }
     res.status(500).json({ message: "Failed to create shop." });
   }
 }
 
 async function updateShop(req, res) {
-  const { name, description, image, status } = req.body;
+  const { name, email, mobile, address, district, state, pincode, gstNumber, shopImage, status } = req.body;
 
   try {
-    const pool = await poolPromise;
-    const request = pool.request().input("id", sql.Int, req.params.id);
-    const sets = [];
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email.trim().toLowerCase();
+    if (mobile) updateData.mobile = mobile;
+    if (address !== undefined) updateData.address = address;
+    if (district !== undefined) updateData.district = district;
+    if (state !== undefined) updateData.state = state;
+    if (pincode !== undefined) updateData.pincode = pincode;
+    if (gstNumber !== undefined) updateData.gstNumber = gstNumber;
+    if (shopImage !== undefined) updateData.profileImage = shopImage;
+    if (status) updateData.status = status;
 
-    if (name) {
-      request.input("name", sql.NVarChar, name.trim());
-      sets.push("ShopName = @name");
-    }
-    if (description !== undefined) {
-      request.input("description", sql.NVarChar, description);
-      sets.push("ShopDescription = @description");
-    }
-    if (image !== undefined) {
-      request.input("image", sql.NVarChar, image);
-      sets.push("ShopImage = @image");
-    }
-    if (status) {
-      request.input("status", sql.NVarChar, status);
-      sets.push("Status = @status");
-    }
+    const shop = await Shop.findByIdAndUpdate(req.params.id, updateData, { new: true });
 
-    if (sets.length === 0) {
-      return res.status(400).json({ message: "No fields to update." });
-    }
-
-    sets.push("UpdatedDate = GETDATE()");
-
-    const result = await request.query(`
-      UPDATE Shops SET ${sets.join(", ")}
-      WHERE ShopID = @id
-    `);
-
-    if (result.rowsAffected[0] === 0) {
+    if (!shop) {
       return res.status(404).json({ message: "Shop not found." });
     }
 
-    const updated = await pool
-      .request()
-      .input("id", sql.Int, req.params.id)
-      .query(`
-        SELECT ShopID, ShopName, ShopDescription, ShopImage, OwnerUserID, Status, CreatedDate
-        FROM Shops
-        WHERE ShopID = @id
-      `);
-
-    res.json(mapShop(updated.recordset[0]));
+    res.json(mapShop(shop));
   } catch (err) {
     console.error("Update shop error:", err.message);
     res.status(500).json({ message: "Failed to update shop." });
@@ -138,17 +101,9 @@ async function updateShop(req, res) {
 
 async function deleteShop(req, res) {
   try {
-    const pool = await poolPromise;
-    const result = await pool
-      .request()
-      .input("id", sql.Int, req.params.id)
-      .query(`
-        UPDATE Shops 
-        SET Status = 'Inactive', UpdatedDate = GETDATE()
-        WHERE ShopID = @id
-      `);
+    const shop = await Shop.findByIdAndUpdate(req.params.id, { status: "inactive" });
 
-    if (result.rowsAffected[0] === 0) {
+    if (!shop) {
       return res.status(404).json({ message: "Shop not found." });
     }
 

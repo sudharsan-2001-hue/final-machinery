@@ -38,7 +38,7 @@ function Buy() {
 
         // 3. Out-of-stock auto-redirection
         if (selected.stock <= 0) {
-          navigate(`/outofstock?id=${selected.id}`);
+          navigate(`/outofstock?id=${selected._id}`);
           return;
         }
 
@@ -67,15 +67,25 @@ function Buy() {
   const handleProceedToAddress = () => {
     if (!machine) return;
 
-    // Save active checkout config in LocalStorage
+    // Save active checkout config in LocalStorage with items array structure
     const checkoutData = {
       machineId: machine.id,
-      name: machine.name,
-      image: machine.image,
+      items: [{
+        id: machine.id,
+        name: machine.productName,
+        image: machine.image,
+        quantity: quantity,
+        offerPrice: machine.offerPrice,
+        originalPrice: machine.price,
+        price: machine.offerPrice
+      }],
       quantity: quantity,
       offerPrice: machine.offerPrice,
-      originalPrice: machine.originalPrice,
+      originalPrice: machine.price,
       totalAmount: machine.offerPrice * quantity,
+      subtotal: machine.offerPrice * quantity,
+      deliveryCharges: 1500,
+      gst: Math.round((machine.offerPrice * quantity) * 0.18),
       weight: machine.weight
     };
 

@@ -9,7 +9,7 @@ function ShopOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const orderStatuses = ['Pending', 'Confirmed', 'Preparing', 'Delivered', 'Cancelled'];
+  const orderStatuses = ['pending', 'confirmed', 'preparing', 'shipped', 'delivered', 'cancelled'];
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("scm_currentUser"));
@@ -36,7 +36,7 @@ function ShopOrders() {
   const handleStatusUpdate = async (orderId, newStatus) => {
     try {
       console.log("Updating order status - orderId:", orderId, "type:", typeof orderId);
-      await api.updateOrderStatus(Number(orderId), newStatus);
+      await api.updateOrderStatus(orderId, newStatus);
       
       // Refresh orders
       const allOrders = await api.getOrders();
@@ -121,30 +121,30 @@ function ShopOrders() {
                 </thead>
                 <tbody>
                   {orders.map((ord) => (
-                    <tr key={ord.orderId}>
-                      <td><span className="order-id-badge">{ord.orderNumber || ord.OrderNumber || 'N/A'}</span></td>
+                    <tr key={ord._id || ord.orderId}>
+                      <td><span className="order-id-badge">{ord.orderNumber || 'N/A'}</span></td>
                       <td>
                         <div className="customer-info">
-                          <strong>{ord.customer?.name || ord.Username || 'N/A'}</strong>
-                          <p>{ord.customer?.phone || ord.PhoneNumber || 'N/A'}</p>
+                          <strong>{ord.customerId?.name || ord.customer?.name || 'N/A'}</strong>
+                          <p>{ord.customerId?.mobile || ord.customer?.phone || 'N/A'}</p>
                         </div>
                       </td>
-                      <td><strong>{ord.item?.name || ord.MachineName || 'N/A'}</strong></td>
-                      <td className="text-center">{ord.item?.quantity || ord.Quantity || 1}</td>
-                      <td className="text-center text-green">₹{(ord.totalAmount || ord.TotalAmount || 0).toLocaleString("en-IN")}</td>
+                      <td><strong>{ord.products?.[0]?.productId?.productName || 'N/A'}</strong></td>
+                      <td className="text-center">{ord.products?.[0]?.quantity || 1}</td>
+                      <td className="text-center text-green">₹{(ord.totalAmount || 0).toLocaleString("en-IN")}</td>
                       <td className="text-center">
-                        <span className="payment-method-pill">{ord.paymentMethod || ord.PaymentMethod || 'N/A'}</span>
+                        <span className="payment-method-pill">{ord.paymentMethod || 'N/A'}</span>
                       </td>
                       <td className="text-center">
-                        <span className={`status-badge status-${(ord.status || ord.OrderStatus || 'pending').toLowerCase()}`}>
-                          {ord.status || ord.OrderStatus || 'Pending'}
+                        <span className={`status-badge status-${(ord.orderStatus || 'pending').toLowerCase()}`}>
+                          {ord.orderStatus || 'Pending'}
                         </span>
                       </td>
                       <td className="text-center">
                         <select
                           className="status-select"
-                          value={ord.status || ord.OrderStatus || 'Pending'}
-                          onChange={(e) => handleStatusUpdate(ord.orderId, e.target.value)}
+                          value={ord.orderStatus || 'pending'}
+                          onChange={(e) => handleStatusUpdate(ord._id || ord.orderId, e.target.value)}
                         >
                           {orderStatuses.map(status => (
                             <option key={status} value={status}>{status}</option>

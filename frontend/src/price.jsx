@@ -20,13 +20,11 @@ function Price() {
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    // Session validation
+    // Optional: Set current user if logged in, but don't force login
     const user = JSON.parse(localStorage.getItem("scm_currentUser"));
-    if (!user || user.role !== "customer") {
-      navigate("/");
-      return;
+    if (user) {
+      setCurrentUser(user);
     }
-    setCurrentUser(user);
 
     // Check URL parameter for offer filter
     const urlParams = new URLSearchParams(window.location.search);
@@ -47,9 +45,9 @@ function Price() {
           const offerProducts = storedMachinery.filter(m => {
             const hasValidOfferPrice = m.offerPrice !== null && m.offerPrice !== undefined;
             const isPositive = m.offerPrice > 0;
-            const isLessThanOriginal = m.offerPrice < m.originalPrice;
+            const isLessThanOriginal = m.offerPrice < m.price;
             const hasOffer = hasValidOfferPrice && isPositive && isLessThanOriginal;
-            console.log(`Product ${m.name}: offerPrice=${m.offerPrice}, originalPrice=${m.originalPrice}, hasValidOfferPrice=${hasValidOfferPrice}, isPositive=${isPositive}, isLessThanOriginal=${isLessThanOriginal}, hasOffer=${hasOffer}`);
+            console.log(`Product ${m.productName}: offerPrice=${m.offerPrice}, price=${m.price}, hasValidOfferPrice=${hasValidOfferPrice}, isPositive=${isPositive}, isLessThanOriginal=${isLessThanOriginal}, hasOffer=${hasOffer}`);
             return hasOffer;
           });
           console.log("Filtered offer products:", offerProducts);
@@ -61,7 +59,7 @@ function Price() {
         }
 
         // Extract unique categories
-        const cats = ["All", ...new Set(storedMachinery.map((m) => m.category))];
+        const cats = ["All", ...new Set(storedMachinery.map((m) => m.categoryId?.categoryName || "Uncategorized"))];
         setCategories(cats);
       } catch (err) {
         console.error("Error fetching products:", err);
@@ -83,21 +81,21 @@ function Price() {
       result = result.filter(m => {
         const hasValidOfferPrice = m.offerPrice !== null && m.offerPrice !== undefined;
         const isPositive = m.offerPrice > 0;
-        const isLessThanOriginal = m.offerPrice < m.originalPrice;
+        const isLessThanOriginal = m.offerPrice < m.price;
         return hasValidOfferPrice && isPositive && isLessThanOriginal;
       });
     }
 
     // Then apply category filter
     if (selectedCategory !== "All") {
-      result = result.filter((m) => m.category === selectedCategory);
+      result = result.filter((m) => m.categoryId?.categoryName === selectedCategory);
     }
 
     // Then apply search filter
     if (searchTerm.trim() !== "") {
       result = result.filter((m) =>
-        m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.category.toLowerCase().includes(searchTerm.toLowerCase())
+        m.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.categoryId?.categoryName.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -116,18 +114,25 @@ function Price() {
       return;
     }
 
+    // Check if user is logged in
+    const user = JSON.parse(localStorage.getItem("scm_currentUser"));
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
     // Add to cart session in LocalStorage - always add as separate item for bulk orders
     const cart = JSON.parse(localStorage.getItem("scm_cart_items")) || [];
-    
+
     // Always add as separate item with unique ID for bulk orders
     const totalQtyForProduct = cart.filter(item => item.id === machine.id).reduce((sum, item) => sum + item.quantity, 0);
-    
+
     if (totalQtyForProduct >= machine.stock) {
       setCartAlert(`Cannot add more. Only ${machine.stock} units are in stock.`);
       setTimeout(() => setCartAlert(""), 3000);
       return;
     }
-    
+
     cart.push({ ...machine, quantity: 1, price: machine.offerPrice || machine.originalPrice, cartItemId: Date.now() });
 
     localStorage.setItem("scm_cart_items", JSON.stringify(cart));
@@ -138,6 +143,13 @@ function Price() {
   };
 
   const handleBuyNow = (machine) => {
+    // Check if user is logged in
+    const user = JSON.parse(localStorage.getItem("scm_currentUser"));
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
     if (machine.stock === 0) {
       // Navigate to Out of Stock Page, passing machine ID in state/search
       navigate(`/outofstock?id=${machine.id}`);
@@ -146,7 +158,7 @@ function Price() {
     }
   };
 
-  if (!currentUser) return null;
+  // Allow page to render even without login
 
   return (
     <div className="price-wrapper">
@@ -168,21 +180,34 @@ function Price() {
             </svg>
             {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </button>
-          <button className="header-back-btn" onClick={() => navigate("/home")}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="header-icon-svg">
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-            Back
-          </button>
-          <button className="header-logout-btn btn-grad-secondary" onClick={handleLogout}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="header-icon-svg">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            Logout
-          </button>
+          {currentUser ? (
+            <>
+              <button className="header-back-btn" onClick={() => navigate("/home")}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="header-icon-svg">
+                  <line x1="19" y1="12" x2="5" y2="12" />
+                  <polyline points="12 19 5 12 12 5" />
+                </svg>
+                Home
+              </button>
+              <button className="header-logout-btn btn-grad-secondary" onClick={handleLogout}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="header-icon-svg">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                Logout
+              </button>
+            </>
+          ) : (
+            <button className="header-logout-btn btn-grad-primary" onClick={() => navigate("/login")}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="header-icon-svg">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                <polyline points="10 17 15 12 10 7" />
+                <line x1="15" y1="12" x2="3" y2="12" />
+              </svg>
+              Login
+            </button>
+          )}
         </div>
       </header>
 
