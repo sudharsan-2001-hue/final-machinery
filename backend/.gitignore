@@ -1,3 +1,5 @@
 node_modules/
 .env
 uploads/
+mongodb-installer.msi
+scripts/temp_data/
