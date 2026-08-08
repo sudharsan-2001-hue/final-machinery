@@ -502,7 +502,7 @@ function AdminComplaints() {
                       <h4>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="voice-icon" style={{ width: '16px', marginRight: '5px' }}>
                           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+                          <path d="19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
                         </svg>
                         Customer Voice Message
                       </h4>
@@ -513,9 +513,9 @@ function AdminComplaints() {
                         onError={(e) => console.error("Customer audio error:", e)}
                         onLoadStart={() => console.log("Customer audio loading:", selectedComplaint.CustomerVoiceUrl)}
                       >
-                        <source src={selectedComplaint.CustomerVoiceUrl.startsWith('http') ? selectedComplaint.CustomerVoiceUrl : `${selectedComplaint.CustomerVoiceUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.CustomerVoiceUrl}`} type="audio/webm" />
-                        <source src={selectedComplaint.CustomerVoiceUrl.startsWith('http') ? selectedComplaint.CustomerVoiceUrl : `${selectedComplaint.CustomerVoiceUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.CustomerVoiceUrl}`} type="audio/mp3" />
-                        <source src={selectedComplaint.CustomerVoiceUrl.startsWith('http') ? selectedComplaint.CustomerVoiceUrl : `${selectedComplaint.CustomerVoiceUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.CustomerVoiceUrl}`} type="audio/wav" />
+                        <source src={selectedComplaint.CustomerVoiceUrl.startsWith('http') ? selectedComplaint.CustomerVoiceUrl : `${import.meta.env.VITE_API_URL}${selectedComplaint.CustomerVoiceUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.CustomerVoiceUrl}`} type="audio/webm" />
+                        <source src={selectedComplaint.CustomerVoiceUrl.startsWith('http') ? selectedComplaint.CustomerVoiceUrl : `${import.meta.env.VITE_API_URL}${selectedComplaint.CustomerVoiceUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.CustomerVoiceUrl}`} type="audio/mp3" />
+                        <source src={selectedComplaint.CustomerVoiceUrl.startsWith('http') ? selectedComplaint.CustomerVoiceUrl : `${import.meta.env.VITE_API_URL}${selectedComplaint.CustomerVoiceUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.CustomerVoiceUrl}`} type="audio/wav" />
                         Your browser does not support the audio element.
                       </audio>
                     </div>
@@ -651,9 +651,9 @@ function AdminComplaints() {
                         onError={(e) => console.error("Voice reply audio error:", e)}
                         onLoadStart={() => console.log("Voice reply audio loading:", selectedComplaint.VoiceReplyUrl)}
                       >
-                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('http') ? selectedComplaint.VoiceReplyUrl : `${selectedComplaint.VoiceReplyUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.VoiceReplyUrl}`} type="audio/webm" />
-                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('http') ? selectedComplaint.VoiceReplyUrl : `${selectedComplaint.VoiceReplyUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.VoiceReplyUrl}`} type="audio/mp3" />
-                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('http') ? selectedComplaint.VoiceReplyUrl : `${selectedComplaint.VoiceReplyUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.VoiceReplyUrl}`} type="audio/wav" />
+                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('http') ? selectedComplaint.VoiceReplyUrl : `${import.meta.env.VITE_API_URL}${selectedComplaint.VoiceReplyUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.VoiceReplyUrl}`} type="audio/webm" />
+                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('http') ? selectedComplaint.VoiceReplyUrl : `${import.meta.env.VITE_API_URL}${selectedComplaint.VoiceReplyUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.VoiceReplyUrl}`} type="audio/mp3" />
+                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('http') ? selectedComplaint.VoiceReplyUrl : `${import.meta.env.VITE_API_URL}${selectedComplaint.VoiceReplyUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.VoiceReplyUrl}`} type="audio/wav" />
                         Your browser does not support the audio element.
                       </audio>
                     </div>

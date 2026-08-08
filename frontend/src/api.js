@@ -45,7 +45,7 @@ http.interceptors.response.use(
   (error) => {
     if (!error.response) {
       throw new Error(
-        "Cannot reach the server. Make sure the backend is running on port 5000 and MongoDB is connected."
+        "Cannot reach the server. Please check your internet connection and try again."
       );
     }
     const message = error.response.data?.message || "Something went wrong.";
