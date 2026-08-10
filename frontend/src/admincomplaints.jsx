@@ -231,23 +231,7 @@ function AdminComplaints() {
       console.log("Uploading to backend...");
 
       // Upload audio to backend
-      const response = await fetch('/api/upload-voice-reply', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('scm_token')}`
-        },
-        body: formData
-      });
-
-      console.log("Upload response status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Upload failed:", errorText);
-        throw new Error('Failed to upload voice reply');
-      }
-
-      const result = await response.json();
+      const result = await api.uploadVoiceReply(formData);
       console.log("Upload result:", result);
       
       // Reload complaint details to get updated voice URL

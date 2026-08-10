@@ -214,6 +214,15 @@ export const api = {
     return data;
   },
 
+  async uploadVoiceReply(formData) {
+    const { data } = await http.post("/upload-voice-reply", formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return data;
+  },
+
   async getComplaints() {
     const { data } = await http.get("/complaints");
     return data;
