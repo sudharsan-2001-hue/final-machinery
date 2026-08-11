@@ -62,26 +62,11 @@ const PRESET_IMAGES = {
 // BACKEND URL
 // =====================================================
 
-// Vercel frontend -> Render backend
-const RENDER_BACKEND_URL =
-  "https://final-machinery.onrender.com";
+// Production backend URL (Render)
+const PRODUCTION_API_URL = "https://final-machinery.onrender.com/api";
 
-// If VITE_API_URL exists, use it.
-// Otherwise automatically use Render backend.
-let BASE_URL =
-  import.meta.env.VITE_API_URL || RENDER_BACKEND_URL;
-
-// Remove trailing slash
-BASE_URL = BASE_URL.replace(/\/+$/, "");
-
-// If user accidentally puts /api in VITE_API_URL,
-// remove it because we add /api below.
-if (BASE_URL.endsWith("/api")) {
-  BASE_URL = BASE_URL.slice(0, -4);
-}
-
-// Final API URL
-const API_BASE_URL = `${BASE_URL}/api`;
+// Use environment variable if set, otherwise use production URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || PRODUCTION_API_URL;
 
 
 // =====================================================
@@ -859,13 +844,3 @@ export const api = {
     return data;
   },
 };
-
-
-// =====================================================
-// DEBUG - REMOVE LATER IF NOT NEEDED
-// =====================================================
-
-console.log(
-  "API Base URL:",
-  API_BASE_URL
-);

@@ -48,7 +48,7 @@ uploadDirs.forEach(dir => {
   }
 });
 
-const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
+const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173,http://localhost:5174,https://final-machinery.onrender.com,https://mach-mart.vercel.app")
   .split(",")
   .map((o) => o.trim());
 
@@ -58,7 +58,10 @@ app.use(
       console.log("Request Origin:", origin);
       console.log("Allowed Origins:", allowedOrigins);
 
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow all Vercel subdomains
+      const isVercel = origin && origin.endsWith('.vercel.app');
+      
+      if (!origin || allowedOrigins.includes(origin) || isVercel) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
