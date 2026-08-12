@@ -77,29 +77,53 @@ async function createShop(req, res) {
 }
 
 async function registerShopDetails(req, res) {
+  console.log("Register shop details request body:", req.body);
+  
   const { shopId, shopName, address, gstNumber, shopImage } = req.body;
 
   if (!shopId || !shopName || !address) {
+    console.log("Validation failed - missing required fields:", { shopId, shopName, address });
     return res.status(400).json({ message: "Shop ID, shop name, and address are required." });
   }
 
   try {
+    console.log("Looking for shop with shopId:", shopId);
+    
+    // Check if shop already exists and is registered
+    const existingShop = await Shop.findOne({ shopId: shopId, role: "shopadmin" });
+    
+    if (!existingShop) {
+      console.log("Shop not found with shopId:", shopId);
+      return res.status(404).json({ message: "Shop not found. Please ensure you have a valid shop ID." });
+    }
+
+    if (existingShop.shopRegistered) {
+      console.log("Shop already registered:", shopId);
+      return res.status(400).json({ message: "Shop is already registered." });
+    }
+
+    console.log("Updating shop details for:", shopId);
+    
+    const updateData = {
+      name: shopName,
+      address: address,
+      gstNumber: gstNumber || null,
+      profileImage: shopImage || null,
+      shopRegistered: true
+    };
+
     const shop = await Shop.findOneAndUpdate(
       { shopId: shopId, role: "shopadmin" },
-      {
-        name: shopName,
-        address: address,
-        gstNumber: gstNumber || null,
-        profileImage: shopImage || null,
-        shopRegistered: true
-      },
+      updateData,
       { new: true }
     );
 
     if (!shop) {
-      return res.status(404).json({ message: "Shop not found." });
+      console.log("Failed to update shop:", shopId);
+      return res.status(500).json({ message: "Failed to update shop details." });
     }
 
+    console.log("Shop registration successful:", shopId);
     res.json({
       message: "Shop registration completed successfully.",
       shopId: shopId,
@@ -107,7 +131,8 @@ async function registerShopDetails(req, res) {
     });
   } catch (err) {
     console.error("Register shop details error:", err.message);
-    res.status(500).json({ message: "Failed to register shop details." });
+    console.error("Full error:", err);
+    res.status(500).json({ message: "Failed to register shop details: " + err.message });
   }
 }
 

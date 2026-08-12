@@ -12,7 +12,12 @@ function ShopRegistration() {
   const [loading, setLoading] = useState(false);
 
   const [shopName, setShopName] = useState("");
-  const [address, setAddress] = useState("");
+  const [shopNo, setShopNo] = useState("");
+  const [street, setStreet] = useState("");
+  const [road, setRoad] = useState("");
+  const [city, setCity] = useState("");
+  const [district, setDistrict] = useState("");
+  const [state, setState] = useState("");
   const [shopImage, setShopImage] = useState("");
   const [gstNumber, setGstNumber] = useState("");
   const [error, setError] = useState("");
@@ -50,14 +55,19 @@ function ShopRegistration() {
     e.preventDefault();
     setError("");
 
-    if (!shopName || !address) {
-      setError("Shop Name and Address are required.");
+    if (!shopName || !shopNo || !street || !city || !district || !state) {
+      setError("Shop Name, Shop No, Street, City, District, and State are required.");
       return;
     }
 
+    // Format address as single string
+    const formattedAddress = [shopNo, street, road, city, district, state]
+      .filter(part => part && part.trim())
+      .join(", ");
+
     setLoading(true);
     try {
-      const data = await api.registerShop(currentUser.shopId, shopName, address, gstNumber, shopImage);
+      const data = await api.registerShop(currentUser.shopId, shopName, formattedAddress, gstNumber, shopImage);
       showToast("Shop registration successful!", "success");
       
       // Update user session with shopRegistered flag
@@ -114,13 +124,77 @@ function ShopRegistration() {
           </div>
 
           <div className="input-group">
-            <label>Shop Address *</label>
-            <textarea
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Enter complete shop address"
+            <label>Shop No / Door No *</label>
+            <input
+              type="text"
+              value={shopNo}
+              onChange={(e) => setShopNo(e.target.value)}
+              placeholder="e.g., 12/45"
               className="glass-input"
-              rows="3"
+              required
+              disabled={loading}
+            />
+          </div>
+
+          <div className="input-group">
+            <label>Street *</label>
+            <input
+              type="text"
+              value={street}
+              onChange={(e) => setStreet(e.target.value)}
+              placeholder="e.g., Main Street"
+              className="glass-input"
+              required
+              disabled={loading}
+            />
+          </div>
+
+          <div className="input-group">
+            <label>Road (Optional)</label>
+            <input
+              type="text"
+              value={road}
+              onChange={(e) => setRoad(e.target.value)}
+              placeholder="e.g., GST Road"
+              className="glass-input"
+              disabled={loading}
+            />
+          </div>
+
+          <div className="input-group">
+            <label>City *</label>
+            <input
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="e.g., Kumbakonam"
+              className="glass-input"
+              required
+              disabled={loading}
+            />
+          </div>
+
+          <div className="input-group">
+            <label>District *</label>
+            <input
+              type="text"
+              value={district}
+              onChange={(e) => setDistrict(e.target.value)}
+              placeholder="e.g., Thanjavur"
+              className="glass-input"
+              required
+              disabled={loading}
+            />
+          </div>
+
+          <div className="input-group">
+            <label>State *</label>
+            <input
+              type="text"
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              placeholder="e.g., Tamil Nadu"
+              className="glass-input"
               required
               disabled={loading}
             />
