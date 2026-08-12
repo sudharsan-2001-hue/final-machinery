@@ -53,11 +53,16 @@ function mapProduct(product) {
 
 async function getAllProducts(req, res) {
   try {
-    const shopId = req.query.shopId;
+    let shopId = req.query.shopId;
     const categoryId = req.query.categoryId;
     const search = req.query.search;
 
     let query = { status: { $ne: "inactive" } };
+
+    // If user is shop admin, filter by their shopId unless explicitly querying another shop
+    if ((req.user.role === 'shopadmin' || req.user.role === 'seller') && req.user.shopId) {
+      shopId = shopId || req.user.shopId;
+    }
 
     if (shopId) {
       query.shopId = shopId;

@@ -179,7 +179,17 @@ async function createOrderRecord(orderData) {
 
 async function getAllOrders(req, res) {
   try {
-    const orders = await Order.find()
+    let query = {};
+    
+    // If user is shop admin, filter by their shopId
+    if (req.user.role === 'shopadmin' || req.user.role === 'seller') {
+      if (!req.user.shopId) {
+        return res.status(400).json({ message: "Shop ID is required for shop admin." });
+      }
+      query.shopId = req.user.shopId;
+    }
+    
+    const orders = await Order.find(query)
       .populate('customerId', 'name email mobile')
       .populate('products.productId', 'productName image')
       .sort({ orderedAt: -1 });
@@ -191,6 +201,7 @@ async function getAllOrders(req, res) {
       paymentMethod: order.paymentMethod,
       orderDate: order.orderedAt,
       orderStatus: order.orderStatus,
+      shopId: order.shopId,
       customer: {
         name: order.customerId?.name,
         email: order.customerId?.email,

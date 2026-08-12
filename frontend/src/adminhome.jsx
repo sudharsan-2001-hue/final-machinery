@@ -68,27 +68,18 @@ function AdminHome() {
           console.log("Global admin metrics API response:", metrics);
         }
 
-        // For shop admins, filter orders by shopId
-        let orders;
-        if (user.role === "shopadmin" && user.shopId) {
-          const allOrders = await api.getOrders();
-          orders = allOrders.filter(order => order.shopId === user.shopId);
-          console.log("Filtered shop orders:", orders);
-        } else {
-          orders = await api.getOrders();
-          console.log("All orders:", orders);
-        }
+        // Backend now filters orders by shopId for shop admins
+        const orders = await api.getOrders();
+        console.log("Orders API response:", orders);
 
-        // For shop admins, filter products by shopId
+        // Backend now filters products by shopId for shop admins via shopId query param
         let products;
         if (user.role === "shopadmin" && user.shopId) {
-          const allProducts = await api.getProducts();
-          products = allProducts.filter(product => product.shopId === user.shopId);
-          console.log("Filtered shop products:", products);
+          products = await api.getProducts(user.shopId);
         } else {
           products = await api.getProducts();
-          console.log("All products:", products);
         }
+        console.log("Products API response:", products);
 
         const availableStock = products.reduce((sum, item) => sum + Number(item.stock || 0), 0);
         
