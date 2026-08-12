@@ -6,7 +6,7 @@ const Order = require("../models/Order");
 const Notification = require("../models/Notification");
 const fs = require("fs");
 const path = require("path");
-const gtts = require("gtts");
+const https = require("https");
 
 async function getMetrics(req, res) {
   try {
@@ -30,6 +30,43 @@ async function getMetrics(req, res) {
   } catch (err) {
     console.error("Metrics error:", err.message);
     res.status(500).json({ message: "Failed to fetch dashboard metrics." });
+  }
+}
+
+async function getShopMetrics(req, res) {
+  try {
+    const shopId = req.params.shopId || req.user.shopId;
+
+    if (!shopId) {
+      return res.status(400).json({ message: "Shop ID is required." });
+    }
+
+    const totalProducts = await Product.countDocuments({ shopId, status: { $ne: "inactive" } });
+    const totalOrders = await Order.countDocuments({ shopId });
+    const revenueResult = await Order.aggregate([
+      { $match: { shopId } },
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+    ]);
+    const totalRevenue = revenueResult[0]?.total || 0;
+    const stockResult = await Product.aggregate([
+      { $match: { shopId } },
+      { $group: { _id: null, total: { $sum: "$stock" } } }
+    ]);
+    const totalStock = stockResult[0]?.total || 0;
+
+    // Get transactions count
+    const transactions = await Order.countDocuments({ shopId, paymentStatus: 'paid' });
+
+    res.json({
+      totalProducts,
+      totalOrders,
+      totalRevenue,
+      totalStock,
+      transactions
+    });
+  } catch (err) {
+    console.error("Shop metrics error:", err.message);
+    res.status(500).json({ message: "Failed to fetch shop dashboard metrics." });
   }
 }
 
@@ -101,11 +138,14 @@ async function createComplaint(req, res) {
 
   try {
     let finalOrderId = null;
+    let finalShopId = "SHOP001";
+
     if (orderId && orderId.trim()) {
       const trimmedOrderId = orderId.trim();
       const order = await Order.findOne({ orderNumber: trimmedOrderId });
       if (order) {
         finalOrderId = order._id;
+        finalShopId = order.shopId;
       } else {
         const mongoose = require('mongoose');
         if (mongoose.Types.ObjectId.isValid(trimmedOrderId)) {
@@ -118,7 +158,7 @@ async function createComplaint(req, res) {
 
     const complaint = await Complaint.create({
       customerId: userId,
-      shopId: "SHOP001",
+      shopId: finalShopId,
       title: subject,
       description: description,
       image: imageUrl || null,
@@ -224,6 +264,26 @@ async function getMyComplaints(req, res) {
   } catch (err) {
     console.error("Get my complaints error:", err.message);
     res.status(500).json({ message: "Failed to fetch complaints." });
+  }
+}
+
+async function getShopComplaints(req, res) {
+  try {
+    const shopId = req.params.shopId || req.user.shopId;
+
+    if (!shopId) {
+      return res.status(400).json({ message: "Shop ID is required." });
+    }
+
+    const complaints = await Complaint.find({ shopId })
+      .populate('customerId', 'name email mobile')
+      .populate('orderId', 'orderNumber')
+      .sort({ createdAt: -1 });
+
+    res.json(complaints.map(mapComplaint));
+  } catch (err) {
+    console.error("Get shop complaints error:", err.message);
+    res.status(500).json({ message: "Failed to fetch shop complaints." });
   }
 }
 
@@ -333,7 +393,7 @@ async function generateVoiceForComplaint(req, res) {
     console.log("AI Voice Generation - Text:", text);
     console.log("AI Voice Generation - Language:", language);
 
-    // Generate audio file using gtts
+    // Generate audio file using Google Translate TTS API directly
     const voiceDir = path.join(__dirname, "../uploads/voice-replies");
     if (!fs.existsSync(voiceDir)) {
       fs.mkdirSync(voiceDir, { recursive: true });
@@ -343,18 +403,39 @@ async function generateVoiceForComplaint(req, res) {
     const filePath = path.join(voiceDir, fileName);
     const voiceUrl = `/uploads/voice-replies/${fileName}`;
 
-    // Use gtts to generate audio with better error handling
+    // Use Google Translate TTS API directly (no gtts dependency)
+    let voiceGenerated = false;
     try {
-      const tts = gtts(text, language === 'tamil' ? 'ta' : 'en');
+      const langCode = language === 'tamil' ? 'ta' : 'en';
+      const encodedText = encodeURIComponent(text);
+      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=${langCode}&client=tw-ob`;
+
       await new Promise((resolve, reject) => {
-        tts.save(filePath, (err) => {
-          if (err) reject(err);
-          else resolve();
+        const file = fs.createWriteStream(filePath);
+        https.get(ttsUrl, (response) => {
+          if (response.statusCode === 200) {
+            response.pipe(file);
+            file.on('finish', () => {
+              file.close();
+              console.log("Voice file generated successfully:", voiceUrl);
+              voiceGenerated = true;
+              resolve();
+            });
+          } else {
+            file.close();
+            fs.unlinkSync(filePath);
+            reject(new Error(`TTS API returned status ${response.statusCode}`));
+          }
+        }).on('error', (err) => {
+          file.close();
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+          reject(err);
         });
       });
-      console.log("Voice file generated successfully:", voiceUrl);
     } catch (voiceErr) {
-      console.error("GTTS voice generation failed:", voiceErr.message);
+      console.error("Voice generation failed:", voiceErr.message);
       // Fallback: save text reply without voice
       console.log("Falling back to text-only reply");
     }
@@ -364,7 +445,7 @@ async function generateVoiceForComplaint(req, res) {
       id,
       {
         adminReply: text,
-        voiceReplyUrl: fs.existsSync(filePath) ? voiceUrl : null,
+        voiceReplyUrl: voiceGenerated ? voiceUrl : null,
         replyDate: new Date(),
         status: 'resolved'
       },
@@ -377,7 +458,7 @@ async function generateVoiceForComplaint(req, res) {
 
     console.log("Admin reply saved successfully");
 
-    res.json({ 
+    res.json({
       message: complaint.voiceReplyUrl ? "Reply saved successfully with AI voice." : "Reply saved successfully. Voice generation skipped.",
       success: true,
       voiceReplyUrl: complaint.voiceReplyUrl
@@ -469,11 +550,13 @@ async function markMessageAsRead(req, res) {
 
 module.exports = {
   getMetrics,
+  getShopMetrics,
   createNotification,
   createComplaint,
   getComplaintById,
   getAllComplaints,
   getMyComplaints,
+  getShopComplaints,
   uploadCustomerVoice,
   uploadVoiceReply,
   updateComplaintReply,

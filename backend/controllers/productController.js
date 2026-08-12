@@ -1,6 +1,7 @@
 const Product = require("../models/Product");
 const Category = require("../models/Category");
 const Stock = require("../models/Stock");
+const User = require("../models/User");
 
 function mapProduct(product) {
   let categoryNameVal = "";
@@ -10,6 +11,22 @@ function mapProduct(product) {
     } else {
       categoryNameVal = String(product.categoryId);
     }
+  }
+
+  let shopName = "";
+  let shopDetails = null;
+  if (product.shopId && product.shopDetails) {
+    shopName = product.shopDetails.name || "";
+    shopDetails = {
+      id: product.shopDetails._id,
+      name: product.shopDetails.name,
+      email: product.shopDetails.email,
+      mobile: product.shopDetails.mobile,
+      address: product.shopDetails.address,
+      district: product.shopDetails.district,
+      state: product.shopDetails.state,
+      pincode: product.shopDetails.pincode
+    };
   }
 
   return {
@@ -26,6 +43,8 @@ function mapProduct(product) {
     image: product.image,
     galleryImages: product.galleryImages,
     shopId: product.shopId,
+    shopName: shopName,
+    shopDetails: shopDetails,
     status: product.status,
     createdAt: product.createdAt,
     updatedAt: product.updatedAt
@@ -37,29 +56,45 @@ async function getAllProducts(req, res) {
     const shopId = req.query.shopId;
     const categoryId = req.query.categoryId;
     const search = req.query.search;
-    
+
     let query = { status: { $ne: "inactive" } };
-    
+
     if (shopId) {
       query.shopId = shopId;
     }
-    
+
     if (categoryId) {
       query.categoryId = categoryId;
     }
-    
+
     if (search) {
       query.$or = [
         { productName: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } }
       ];
     }
-    
+
     const products = await Product.find(query)
       .populate('categoryId', 'categoryName categoryImage')
       .sort({ createdAt: -1 });
-    
-    res.json(products.map(mapProduct));
+
+    // Fetch shop details for all products
+    const shopIds = [...new Set(products.map(p => p.shopId).filter(Boolean))];
+    const shops = await User.find({ shopId: { $in: shopIds }, role: { $in: ['seller', 'shopadmin'] } });
+
+    const shopMap = {};
+    shops.forEach(shop => {
+      shopMap[shop.shopId] = shop;
+    });
+
+    // Attach shop details to products
+    const productsWithShop = products.map(product => {
+      const productObj = product.toObject();
+      productObj.shopDetails = shopMap[product.shopId] || null;
+      return productObj;
+    });
+
+    res.json(productsWithShop.map(mapProduct));
   } catch (err) {
     console.error("Get products error:", err.message);
     res.status(500).json({ message: "Failed to fetch products." });
@@ -74,7 +109,15 @@ async function getProductById(req, res) {
     if (!product) {
       return res.status(404).json({ message: "Product not found." });
     }
-    res.json(mapProduct(product));
+
+    // Fetch shop details
+    let productObj = product.toObject();
+    if (product.shopId) {
+      const shop = await User.findOne({ shopId: product.shopId, role: { $in: ['seller', 'shopadmin'] } });
+      productObj.shopDetails = shop;
+    }
+
+    res.json(mapProduct(productObj));
   } catch (err) {
     console.error("Get product error:", err.message);
     res.status(500).json({ message: "Failed to fetch product." });

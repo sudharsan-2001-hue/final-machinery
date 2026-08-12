@@ -267,6 +267,14 @@ function Price() {
 
                 <div className="catalog-info">
                   <h3 className="catalog-item-name">{machine.name}</h3>
+                  {machine.shopName && (
+                    <div className="catalog-shop-tag">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="btn-icon-svg" style={{ marginRight: 4 }}>
+                        <path d="M3 21h18M5 21V7l8-4 8 4v14M8 21v-2a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                      <span>{machine.shopName}</span>
+                    </div>
+                  )}
                   <p className="catalog-item-desc">{machine.description}</p>
                   
                   <div className="catalog-weight-spec">

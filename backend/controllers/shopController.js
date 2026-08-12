@@ -52,6 +52,7 @@ async function createShop(req, res) {
       password: password,
       role: "seller",
       status: "active",
+      shopId: shopId,
       address: address,
       district: district,
       state: state,

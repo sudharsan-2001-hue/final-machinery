@@ -30,6 +30,11 @@ const userSchema = new mongoose.Schema({
     default: 'customer',
     lowercase: true
   },
+  shopId: {
+    type: String,
+    default: null,
+    trim: true
+  },
   customerType: {
     type: String,
     enum: ['individual', 'business'],
