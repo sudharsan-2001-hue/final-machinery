@@ -21,6 +21,7 @@ import MachineryUpload from "./machineryupload";
 import ShopOrders from "./shoporders";
 import AdminComplaints from "./admincomplaints";
 import CustomerComplaints from "./customercomplaints";
+import ShopRegistration from "./shopregistration";
 
 function App() {
   return (
@@ -46,6 +47,7 @@ function App() {
         <Route path="/my-complaints" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerComplaints /></ProtectedRoute>} />
 
         {/* Admin Routes */}
+        <Route path="/shopregistration" element={<ProtectedRoute allowedRoles={["shopadmin"]}><ShopRegistration /></ProtectedRoute>} />
         <Route path="/adminhome" element={<ProtectedRoute allowedRoles={["admin", "shopadmin"]}><AdminHome /></ProtectedRoute>} />
         <Route path="/machineryupload" element={<ProtectedRoute allowedRoles={["admin", "shopadmin"]}><MachineryUpload /></ProtectedRoute>} />
         <Route path="/availablestock" element={<ProtectedRoute allowedRoles={["admin", "shopadmin"]}><AvailableStock /></ProtectedRoute>} />

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, clearSession } from "./api";
+import { DashboardCardSkeleton, OrderRowSkeleton } from "./components/SkeletonLoader";
 import "./adminhome.css";
 
 function AdminHome() {
@@ -52,6 +53,13 @@ function AdminHome() {
       navigate("/");
       return;
     }
+    
+    // Check if shop admin has registered their shop
+    if (user.role === "shopadmin" && !user.shopRegistered) {
+      navigate("/shopregistration");
+      return;
+    }
+    
     setCurrentUser(user);
 
     async function loadDashboard() {
@@ -354,19 +362,24 @@ function AdminHome() {
       <main className="admin-main animate-slide">
         {/* KPI stats bar */}
         <section className="admin-kpi-grid">
-          <div className="kpi-card glass-card-base animate-scale">
-            <div className="kpi-icon-box green">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="kpi-svg">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="16" />
-                <line x1="8" y1="12" x2="16" y2="12" />
-              </svg>
-            </div>
-            <div className="kpi-data">
-              <span className="kpi-label">Unique Machine Types</span>
-              <h3 className="kpi-value">{stats.totalMachines} Models</h3>
-            </div>
-          </div>
+          {loading ? (
+            // Show skeleton loaders while loading
+            [...Array(6)].map((_, i) => <DashboardCardSkeleton key={i} />)
+          ) : (
+            <>
+              <div className="kpi-card glass-card-base animate-scale">
+                <div className="kpi-icon-box green">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="kpi-svg">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="16" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                  </svg>
+                </div>
+                <div className="kpi-data">
+                  <span className="kpi-label">Unique Machine Types</span>
+                  <h3 className="kpi-value">{stats.totalMachines} Models</h3>
+                </div>
+              </div>
 
           <div className="kpi-card glass-card-base animate-scale">
             <div className="kpi-icon-box blue">
@@ -443,6 +456,8 @@ function AdminHome() {
               <h3 className="kpi-value">₹{stats.totalRevenue.toLocaleString("en-IN")}</h3>
             </div>
           </div>
+            </>
+          )}
         </section>
 
         {/* Quick action grid */}

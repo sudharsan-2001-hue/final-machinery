@@ -50,24 +50,64 @@ async function createShop(req, res) {
       email: email.trim().toLowerCase(),
       mobile: mobile,
       password: password,
-      role: "seller",
-      status: "active",
+      role: "shopadmin",
       shopId: shopId,
-      address: address,
-      district: district,
-      state: state,
-      pincode: pincode,
-      gstNumber: gstNumber,
-      profileImage: shopImage
+      shopRegistered: true,
+      address: address || null,
+      district: district || null,
+      state: state || null,
+      pincode: pincode || null,
+      gstNumber: gstNumber || null,
+      profileImage: shopImage || null,
+      status: "active"
     });
 
-    res.status(201).json(mapShop(shop));
+    res.status(201).json({
+      message: "Shop created successfully.",
+      shopId: shopId,
+      shopRegistered: true
+    });
   } catch (err) {
     console.error("Create shop error:", err.message);
     if (err.code === 11000) {
       return res.status(409).json({ message: "Email or mobile already registered." });
     }
     res.status(500).json({ message: "Failed to create shop." });
+  }
+}
+
+async function registerShopDetails(req, res) {
+  const { shopId, shopName, address, gstNumber, shopImage } = req.body;
+
+  if (!shopId || !shopName || !address) {
+    return res.status(400).json({ message: "Shop ID, shop name, and address are required." });
+  }
+
+  try {
+    const shop = await Shop.findOneAndUpdate(
+      { shopId: shopId, role: "shopadmin" },
+      {
+        name: shopName,
+        address: address,
+        gstNumber: gstNumber || null,
+        profileImage: shopImage || null,
+        shopRegistered: true
+      },
+      { new: true }
+    );
+
+    if (!shop) {
+      return res.status(404).json({ message: "Shop not found." });
+    }
+
+    res.json({
+      message: "Shop registration completed successfully.",
+      shopId: shopId,
+      shopRegistered: true
+    });
+  } catch (err) {
+    console.error("Register shop details error:", err.message);
+    res.status(500).json({ message: "Failed to register shop details." });
   }
 }
 
@@ -119,6 +159,7 @@ module.exports = {
   getAllShops,
   getShopById,
   createShop,
+  registerShopDetails,
   updateShop,
   deleteShop,
 };

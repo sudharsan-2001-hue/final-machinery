@@ -823,6 +823,21 @@ export const api = {
     ]);
   },
 
+  async registerShop(shopId, shopName, address, gstNumber, shopImage) {
+    const { data } = await http.post(
+      "/shops/register",
+      {
+        shopId,
+        shopName,
+        address,
+        gstNumber,
+        shopImage
+      }
+    );
+
+    return data;
+  },
+
 
   async getShopById(id) {
     const { data } = await http.get(

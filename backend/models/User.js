@@ -35,6 +35,10 @@ const userSchema = new mongoose.Schema({
     default: null,
     trim: true
   },
+  shopRegistered: {
+    type: Boolean,
+    default: false
+  },
   customerType: {
     type: String,
     enum: ['individual', 'business'],

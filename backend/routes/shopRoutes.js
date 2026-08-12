@@ -8,6 +8,9 @@ const router = express.Router();
 router.get("/", shopController.getAllShops);
 router.get("/:id", shopController.getShopById);
 
+// Shop admin registration route
+router.post("/register", authenticate, shopController.registerShopDetails);
+
 // Admin only routes
 router.post("/", authenticate, requireAdmin, shopController.createShop);
 router.put("/:id", authenticate, requireAdmin, shopController.updateShop);

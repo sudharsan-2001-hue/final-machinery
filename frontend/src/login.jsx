@@ -58,7 +58,7 @@ function Login() {
     setLoading(true);
     try {
       const data = await api.login(identifier, password);
-      const user = { id: data.id, email: data.email, phone: data.phone, fullName: data.fullName, role: data.role, shopId: data.shopId };
+      const user = { id: data.id, email: data.email, phone: data.phone, fullName: data.fullName, role: data.role, shopId: data.shopId, shopRegistered: data.shopRegistered };
 
       if (userRole === "admin" && user.role !== "admin") {
         setError("Invalid admin credentials.");
@@ -72,9 +72,18 @@ function Login() {
       saveSession(user, data.token, rememberMe);
       showToast("Login successful!", "success");
 
-      if (user.role === "shopadmin") navigate("/adminhome");
-      else if (user.role === "admin") navigate("/adminhome");
-      else navigate("/home");
+      if (user.role === "shopadmin") {
+        // Redirect to shop registration if not registered
+        if (!user.shopRegistered) {
+          navigate("/shopregistration");
+        } else {
+          navigate("/adminhome");
+        }
+      } else if (user.role === "admin") {
+        navigate("/adminhome");
+      } else {
+        navigate("/home");
+      }
     } catch (err) {
       setError(err.message || "Invalid email/phone or password.");
     } finally {

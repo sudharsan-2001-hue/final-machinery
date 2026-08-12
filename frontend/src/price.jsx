@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, getProductImage, clearSession } from "./api";
+import { ProductCardSkeleton } from "./components/SkeletonLoader";
 import "./price.css";
 
 function Price() {
@@ -14,6 +15,7 @@ function Price() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Toast / Cart state
   const [cartAlert, setCartAlert] = useState("");
@@ -33,6 +35,7 @@ function Price() {
 
     async function loadProducts() {
       try {
+        setLoading(true);
         const storedMachinery = await api.getProducts();
         console.log("All products loaded:", storedMachinery);
         console.log("Offer param:", offerParam);
@@ -63,6 +66,8 @@ function Price() {
         setCategories(cats);
       } catch (err) {
         console.error("Error fetching products:", err);
+      } finally {
+        setLoading(false);
       }
     }
     loadProducts();
@@ -254,7 +259,10 @@ function Price() {
 
         {/* Catalog grid */}
         <section className="catalog-grid">
-          {filteredMachinery.length > 0 ? (
+          {loading ? (
+            // Show skeleton loaders while loading
+            [...Array(6)].map((_, i) => <ProductCardSkeleton key={i} />)
+          ) : filteredMachinery.length > 0 ? (
             filteredMachinery.map((machine) => (
               <div key={machine.id} className="catalog-card glass-card-base animate-scale">
                 <div className="catalog-img-wrapper">

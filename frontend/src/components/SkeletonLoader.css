@@ -1,0 +1,247 @@
+.skeleton {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.05) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Product Card Skeleton */
+.catalog-image-skeleton {
+  width: 100%;
+  height: 200px;
+  border-radius: 12px;
+}
+
+.stock-badge-skeleton {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 80px;
+  height: 24px;
+  border-radius: 20px;
+}
+
+.category-tag-skeleton {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 60px;
+  height: 24px;
+  border-radius: 20px;
+}
+
+.title-skeleton {
+  height: 24px;
+  width: 80%;
+  margin-bottom: 8px;
+}
+
+.shop-tag-skeleton {
+  height: 20px;
+  width: 120px;
+  margin-bottom: 8px;
+}
+
+.desc-skeleton {
+  height: 16px;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.weight-skeleton {
+  height: 16px;
+  width: 60%;
+  margin-bottom: 16px;
+}
+
+.price-skeleton {
+  height: 20px;
+  width: 50%;
+  margin-bottom: 8px;
+}
+
+.button-skeleton {
+  height: 40px;
+  width: 100%;
+  border-radius: 8px;
+}
+
+/* Dashboard Card Skeleton */
+.stat-icon-skeleton {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.stat-value-skeleton {
+  height: 32px;
+  width: 60%;
+  margin-bottom: 8px;
+}
+
+.stat-label-skeleton {
+  height: 16px;
+  width: 80%;
+}
+
+/* Order Row Skeleton */
+.order-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  gap: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+}
+
+.order-id-skeleton {
+  height: 20px;
+  width: 80%;
+}
+
+.order-customer-skeleton {
+  height: 20px;
+  width: 70%;
+}
+
+.order-amount-skeleton {
+  height: 20px;
+  width: 50%;
+}
+
+.order-status-skeleton {
+  height: 24px;
+  width: 60%;
+  border-radius: 12px;
+}
+
+.order-date-skeleton {
+  height: 20px;
+  width: 60%;
+}
+
+/* Stock Row Skeleton */
+.stock-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+}
+
+.stock-product-skeleton {
+  height: 20px;
+  width: 70%;
+}
+
+.stock-quantity-skeleton {
+  height: 20px;
+  width: 50%;
+}
+
+.stock-status-skeleton {
+  height: 24px;
+  width: 60%;
+  border-radius: 12px;
+}
+
+/* Full Page Skeleton */
+.full-page-skeleton {
+  padding: 20px;
+}
+
+.skeleton-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-logo-skeleton {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+}
+
+.header-title-skeleton {
+  height: 32px;
+  width: 200px;
+}
+
+.skeleton-content {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Glass card base for skeleton containers */
+.glass-card-base {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+}
+
+.catalog-card {
+  overflow: hidden;
+}
+
+.catalog-img-wrapper {
+  position: relative;
+  height: 200px;
+}
+
+.catalog-info {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.catalog-pricing-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.catalog-actions-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.stat-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.stat-content {
+  width: 100%;
+}

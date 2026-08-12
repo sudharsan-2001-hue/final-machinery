@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, clearSession } from "./api";
+import { OrderRowSkeleton } from "./components/SkeletonLoader";
 import "./shoporders.css";
 
 function ShopOrders() {
@@ -92,9 +93,8 @@ function ShopOrders() {
           <p className="shop-orders-subtitle">Manage and update shop orders</p>
 
           {loading ? (
-            <div className="loading-spinner">
-              <div className="spinner"></div>
-              <p>Loading orders...</p>
+            <div className="orders-skeleton-container">
+              {[...Array(5)].map((_, i) => <OrderRowSkeleton key={i} />)}
             </div>
           ) : orders.length === 0 ? (
             <div className="no-orders-message">

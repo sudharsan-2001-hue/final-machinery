@@ -17,6 +17,7 @@ function mapUser(user) {
     fullName: user.name,
     role: user.role,
     shopId: user.shopId || null,
+    shopRegistered: user.shopRegistered || false,
   };
 }
 
