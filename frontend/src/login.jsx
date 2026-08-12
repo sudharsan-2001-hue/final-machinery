@@ -9,7 +9,7 @@ function Login() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [userRole, setUserRole] = useState("customer"); // customer, shopadmin
-  const [formMode, setFormMode] = useState("login");
+  const [formMode, setFormMode] = useState("register"); // Default to register for customers
   const [loading, setLoading] = useState(false);
 
   const [identifier, setIdentifier] = useState("");

@@ -29,6 +29,88 @@
   color: #fff;
 }
 
+.mobile-menu-icon {
+  display: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-menu-icon svg {
+  width: 28px;
+  height: 28px;
+  color: #fff;
+}
+
+.mobile-menu-icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.mobile-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  width: 220px;
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  overflow: hidden;
+  animation: slideDown 0.2s ease-out;
+}
+
+.mobile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.mobile-menu-item:last-child {
+  border-bottom: none;
+}
+
+.mobile-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mobile-menu-item span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.mobile-menu-icon-svg {
+  width: 20px;
+  height: 20px;
+  color: #94a3b8;
+}
+
+.mobile-menu-item:hover .mobile-menu-icon-svg {
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-icon {
+    display: flex;
+  }
+
+  .phone-contact-icon,
+  .email-contact-icon,
+  .complaint-icon,
+  .delivery-icon {
+    display: none;
+  }
+}
+
 .phone-dropdown {
   position: absolute;
   top: 100%;
