@@ -55,8 +55,8 @@
   right: 0;
   margin-top: 8px;
   width: 220px;
-  background: rgba(30, 41, 59, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   z-index: 1000;
@@ -69,10 +69,10 @@
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  color: #fff;
+  color: #1e293b;
   cursor: pointer;
   transition: all 0.2s;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .mobile-menu-item:last-child {
@@ -80,7 +80,7 @@
 }
 
 .mobile-menu-item:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .mobile-menu-item span {
@@ -117,8 +117,8 @@
   right: 0;
   margin-top: 8px;
   width: 280px;
-  background: rgba(30, 41, 59, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   z-index: 1000;
@@ -139,13 +139,13 @@
 
 .phone-dropdown-header {
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   background: rgba(59, 130, 246, 0.1);
 }
 
 .phone-dropdown-header strong {
   font-size: 14px;
-  color: #93c5fd;
+  color: #1e40af;
 }
 
 .phone-dropdown-content {
@@ -156,7 +156,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #fff;
+  color: #1e293b;
   text-decoration: none;
   font-size: 14px;
   font-weight: 600;
@@ -167,7 +167,7 @@
 
 .phone-number-link:hover {
   background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  color: #16a34a;
 }
 
 .phone-link-icon {
@@ -202,8 +202,8 @@
   right: 0;
   margin-top: 8px;
   width: 300px;
-  background: rgba(30, 41, 59, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   z-index: 1000;
@@ -213,13 +213,13 @@
 
 .email-dropdown-header {
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   background: rgba(59, 130, 246, 0.1);
 }
 
 .email-dropdown-header strong {
   font-size: 14px;
-  color: #93c5fd;
+  color: #1e40af;
 }
 
 .email-dropdown-content {
@@ -230,7 +230,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #fff;
+  color: #1e293b;
   text-decoration: none;
   font-size: 13px;
   font-weight: 600;
@@ -242,7 +242,7 @@
 
 .email-link:hover {
   background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  color: #16a34a;
 }
 
 .email-link-icon {
@@ -299,8 +299,8 @@
   right: 0;
   margin-top: 8px;
   width: 280px;
-  background: rgba(30, 41, 59, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   z-index: 1000;
@@ -310,13 +310,13 @@
 
 .delivery-dropdown-header {
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   background: rgba(34, 197, 94, 0.1);
 }
 
 .delivery-dropdown-header strong {
   font-size: 14px;
-  color: #86efac;
+  color: #16a34a;
 }
 
 .delivery-dropdown-content {
@@ -328,7 +328,7 @@
   align-items: center;
   gap: 12px;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .delivery-info-item:last-child {
@@ -338,7 +338,7 @@
 .delivery-info-icon {
   width: 18px;
   height: 18px;
-  color: #22c55e;
+  color: #16a34a;
   flex-shrink: 0;
 }
 
@@ -349,13 +349,13 @@
 
 .delivery-info-label {
   font-size: 11px;
-  color: #94a3b8;
+  color: #64748b;
   margin-bottom: 2px;
 }
 
 .delivery-info-value {
   font-size: 13px;
-  color: #fff;
+  color: #1e293b;
   font-weight: 600;
 }
 
