@@ -786,6 +786,26 @@ export const api = {
     return data;
   },
 
+  async getShopMetrics(shopId) {
+    const { data } = await http.get(
+      `/shop/${shopId}/metrics`
+    );
+
+    return data;
+  },
+
+  async getShopComplaints(shopId) {
+    const { data } = await http.get(
+      `/shop/${shopId}/complaints`
+    );
+
+    return ensureArray(data, [
+      "Complaints",
+      "complaints",
+      "value",
+    ]);
+  },
+
 
   // ---------------------------------------------------
   // SHOPS

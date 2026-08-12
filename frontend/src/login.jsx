@@ -58,7 +58,7 @@ function Login() {
     setLoading(true);
     try {
       const data = await api.login(identifier, password);
-      const user = { id: data.id, email: data.email, phone: data.phone, fullName: data.fullName, role: data.role };
+      const user = { id: data.id, email: data.email, phone: data.phone, fullName: data.fullName, role: data.role, shopId: data.shopId };
 
       if (userRole === "admin" && user.role !== "admin") {
         setError("Invalid admin credentials.");

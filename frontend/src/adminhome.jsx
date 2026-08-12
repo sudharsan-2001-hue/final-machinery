@@ -58,14 +58,37 @@ function AdminHome() {
       try {
         console.log("Loading dashboard data...");
         
-        const metrics = await api.getAdminMetrics();
-        console.log("Metrics API response:", metrics);
+        // Use shop-specific metrics for shop admins, global metrics for global admin
+        let metrics;
+        if (user.role === "shopadmin" && user.shopId) {
+          metrics = await api.getShopMetrics(user.shopId);
+          console.log("Shop metrics API response:", metrics);
+        } else {
+          metrics = await api.getAdminMetrics();
+          console.log("Global admin metrics API response:", metrics);
+        }
 
-        const orders = await api.getOrders();
-        console.log("Orders API response:", orders);
+        // For shop admins, filter orders by shopId
+        let orders;
+        if (user.role === "shopadmin" && user.shopId) {
+          const allOrders = await api.getOrders();
+          orders = allOrders.filter(order => order.shopId === user.shopId);
+          console.log("Filtered shop orders:", orders);
+        } else {
+          orders = await api.getOrders();
+          console.log("All orders:", orders);
+        }
 
-        const products = await api.getProducts();
-        console.log("Products API response:", products);
+        // For shop admins, filter products by shopId
+        let products;
+        if (user.role === "shopadmin" && user.shopId) {
+          const allProducts = await api.getProducts();
+          products = allProducts.filter(product => product.shopId === user.shopId);
+          console.log("Filtered shop products:", products);
+        } else {
+          products = await api.getProducts();
+          console.log("All products:", products);
+        }
 
         const availableStock = products.reduce((sum, item) => sum + Number(item.stock || 0), 0);
         
@@ -80,8 +103,11 @@ function AdminHome() {
           .map(ord => ord.totalAmount || ord.TotalAmount || 0);
         const totalRevenue = completedOrderAmounts.reduce((sum, amount) => sum + Number(amount), 0);
 
-        // Load contact messages
-        const messages = await api.getContactMessages();
+        // Load contact messages - only for global admin
+        let messages = [];
+        if (user.role === "admin") {
+          messages = await api.getContactMessages();
+        }
         setContactMessages(messages || []);
 
         // Play notification sound and show alert if new messages arrived

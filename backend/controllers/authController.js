@@ -16,6 +16,7 @@ function mapUser(user) {
     phone: user.mobile,
     fullName: user.name,
     role: user.role,
+    shopId: user.shopId || null,
   };
 }
 
@@ -155,12 +156,14 @@ async function registerSeller(req, res) {
       return res.status(409).json({ message: "Email or phone number already registered." });
     }
 
+    const shopId = `SHOP${Date.now()}`;
     const user = await User.create({
       name: fullName,
       email: normalizedEmail,
       mobile: normalizedPhone,
       password: password,
       role: "shopadmin",
+      shopId: shopId,
       gstNumber: gstNumber || null,
       address: businessName || null,
       profileImage: profileImage || null,
