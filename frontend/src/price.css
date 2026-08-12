@@ -8,6 +8,44 @@
   min-height: 100vh;
 }
 
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .price-wrapper {
+    padding: 16px;
+    gap: 20px;
+  }
+
+  .catalog-filters-bar {
+    padding: 16px;
+  }
+
+  .catalog-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .catalog-img-wrapper {
+    height: 200px;
+  }
+
+  .catalog-image {
+    height: 200px;
+  }
+
+  .catalog-info {
+    padding: 16px;
+  }
+
+  .catalog-item-name {
+    font-size: 16px;
+  }
+
+  .catalog-item-desc {
+    font-size: 13px;
+    height: 60px;
+  }
+}
+
 /* Toast Alert Style */
 .cart-toast-alert {
   position: fixed;
