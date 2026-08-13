@@ -497,9 +497,9 @@ function AdminComplaints() {
                         onError={(e) => console.error("Customer audio error:", e)}
                         onLoadStart={() => console.log("Customer audio loading:", selectedComplaint.CustomerVoiceUrl)}
                       >
-                        <source src={selectedComplaint.CustomerVoiceUrl.startsWith('http') ? selectedComplaint.CustomerVoiceUrl : `${import.meta.env.VITE_API_URL}${selectedComplaint.CustomerVoiceUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.CustomerVoiceUrl}`} type="audio/webm" />
-                        <source src={selectedComplaint.CustomerVoiceUrl.startsWith('http') ? selectedComplaint.CustomerVoiceUrl : `${import.meta.env.VITE_API_URL}${selectedComplaint.CustomerVoiceUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.CustomerVoiceUrl}`} type="audio/mp3" />
-                        <source src={selectedComplaint.CustomerVoiceUrl.startsWith('http') ? selectedComplaint.CustomerVoiceUrl : `${import.meta.env.VITE_API_URL}${selectedComplaint.CustomerVoiceUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.CustomerVoiceUrl}`} type="audio/wav" />
+                        <source src={api.getAudioUrl(selectedComplaint.CustomerVoiceUrl)} type="audio/webm" />
+                        <source src={api.getAudioUrl(selectedComplaint.CustomerVoiceUrl)} type="audio/mp3" />
+                        <source src={api.getAudioUrl(selectedComplaint.CustomerVoiceUrl)} type="audio/wav" />
                         Your browser does not support the audio element.
                       </audio>
                     </div>
@@ -635,9 +635,9 @@ function AdminComplaints() {
                         onError={(e) => console.error("Voice reply audio error:", e)}
                         onLoadStart={() => console.log("Voice reply audio loading:", selectedComplaint.VoiceReplyUrl)}
                       >
-                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('http') ? selectedComplaint.VoiceReplyUrl : `${import.meta.env.VITE_API_URL}${selectedComplaint.VoiceReplyUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.VoiceReplyUrl}`} type="audio/webm" />
-                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('http') ? selectedComplaint.VoiceReplyUrl : `${import.meta.env.VITE_API_URL}${selectedComplaint.VoiceReplyUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.VoiceReplyUrl}`} type="audio/mp3" />
-                        <source src={selectedComplaint.VoiceReplyUrl.startsWith('http') ? selectedComplaint.VoiceReplyUrl : `${import.meta.env.VITE_API_URL}${selectedComplaint.VoiceReplyUrl.startsWith('/api') ? '' : '/api'}${selectedComplaint.VoiceReplyUrl}`} type="audio/wav" />
+                        <source src={api.getAudioUrl(selectedComplaint.VoiceReplyUrl)} type="audio/webm" />
+                        <source src={api.getAudioUrl(selectedComplaint.VoiceReplyUrl)} type="audio/mp3" />
+                        <source src={api.getAudioUrl(selectedComplaint.VoiceReplyUrl)} type="audio/wav" />
                         Your browser does not support the audio element.
                       </audio>
                     </div>
