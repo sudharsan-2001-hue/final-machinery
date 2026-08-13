@@ -6,6 +6,7 @@ function signToken(user) {
     email: user.email || user.Email,
     phone: user.phone || user.PhoneNumber,
     role: (user.role || user.Role || "customer").toLowerCase(),
+    shopId: user.shopId || user.ShopID || null,
   };
 
   return jwt.sign(payload, process.env.JWT_SECRET || "scm_dev_secret_change_in_production", {
