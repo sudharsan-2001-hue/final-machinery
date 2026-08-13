@@ -332,37 +332,114 @@
 }
 
 @media (max-width: 600px) {
+  .order-wrapper {
+    padding: 12px !important;
+    gap: 20px !important;
+  }
   .invoice-sheet {
     padding: 16px !important;
-  }
-  .invoice-billing-row {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-  .invoice-company-details {
-    text-align: left;
-  }
-  .order-actions-row {
-    flex-direction: column;
-    gap: 12px;
-  }
-  .order-home-btn, .order-download-btn {
-    width: 100%;
-    justify-content: center;
+    border-radius: 16px !important;
   }
   .success-heading {
     font-size: 20px !important;
   }
+  .print-header-invoice {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+  }
+  .invoice-company-details {
+    text-align: left !important;
+  }
+  .invoice-billing-row {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  .billing-col, .shipping-col {
+    background: rgba(0, 0, 0, 0.15) !important;
+    padding: 12px !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  }
+  .order-actions-row {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .order-home-btn, .order-download-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  
+  /* Convert Table to Card List on Mobile */
+  .table-responsive {
+    margin: 10px 0 !important;
+    overflow-x: visible !important;
+  }
+  .invoice-items-table, 
+  .invoice-items-table thead, 
+  .invoice-items-table tbody, 
   .invoice-items-table th, 
+  .invoice-items-table td, 
+  .invoice-items-table tr {
+    display: block !important;
+    width: 100% !important;
+  }
+  .invoice-items-table thead {
+    display: none !important;
+  }
+  .invoice-items-table tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    padding: 16px 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    position: relative !important;
+  }
+  .invoice-items-table tr:last-child {
+    border-bottom: none !important;
+  }
   .invoice-items-table td {
-    padding: 12px 8px !important;
-    font-size: 12px !important;
+    border-bottom: none !important;
+    padding: 0 !important;
+    text-align: left !important;
   }
   .table-item-desc {
-    gap: 8px !important;
+    gap: 10px !important;
   }
   .table-item-img {
-    width: 40px !important;
-    height: 40px !important;
+    width: 44px !important;
+    height: 44px !important;
+  }
+  
+  .invoice-items-table td:nth-child(2) {
+    font-size: 13px !important;
+    color: #94a3b8 !important;
+  }
+  .invoice-items-table td:nth-child(2)::before {
+    content: "Rate: ";
+    font-weight: 600;
+  }
+  .invoice-items-table td:nth-child(3) {
+    font-size: 13px !important;
+    color: #94a3b8 !important;
+  }
+  .invoice-items-table td:nth-child(3)::before {
+    content: "Quantity: ";
+    font-weight: 600;
+  }
+  .invoice-items-table td:nth-child(4) {
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    color: #22c55e !important;
+    text-align: right !important;
+    margin-top: -20px !important;
+  }
+  
+  .invoice-calculations-summary {
+    align-items: stretch !important;
+  }
+  .calc-row {
+    width: 100% !important;
+    max-width: none !important;
   }
 }
