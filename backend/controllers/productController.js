@@ -60,7 +60,7 @@ async function getAllProducts(req, res) {
     let query = { status: { $ne: "inactive" } };
 
     // If user is shop admin, filter by their shopId unless explicitly querying another shop
-    if ((req.user.role === 'shopadmin' || req.user.role === 'seller') && req.user.shopId) {
+    if (req.user && (req.user.role === 'shopadmin' || req.user.role === 'seller') && req.user.shopId) {
       shopId = shopId || req.user.shopId;
     }
 
