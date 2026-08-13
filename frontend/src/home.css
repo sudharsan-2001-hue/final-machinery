@@ -105,8 +105,22 @@
 
   .phone-contact-icon,
   .email-contact-icon,
-  .complaint-icon,
   .delivery-icon {
+    display: block !important;
+    width: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    position: static !important;
+  }
+
+  .phone-contact-icon > svg,
+  .email-contact-icon > svg,
+  .delivery-icon > svg {
+    display: none !important;
+  }
+
+  .complaint-icon {
     display: none;
   }
 }
@@ -1135,9 +1149,17 @@
     gap: 10px;
   }
 
-  .phone-dropdown {
-    width: 260px;
-    right: -50%;
+  .phone-dropdown,
+  .email-dropdown,
+  .delivery-dropdown {
+    position: fixed !important;
+    top: 130px !important;
+    left: 16px !important;
+    right: 16px !important;
+    width: auto !important;
+    max-width: calc(100vw - 32px) !important;
+    box-sizing: border-box !important;
+    z-index: 9999 !important;
   }
 
   .hero-banner {

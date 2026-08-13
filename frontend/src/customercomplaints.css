@@ -337,3 +337,43 @@
 .retry-btn:hover {
   background: rgba(59, 130, 246, 0.3);
 }
+
+@media (max-width: 768px) {
+  .customer-complaints-wrapper {
+    padding: 12px;
+  }
+  
+  .complaints-layout {
+    grid-template-columns: 1fr !important;
+    gap: 16px;
+    min-height: auto;
+  }
+  
+  .complaints-list-section {
+    max-height: 250px !important;
+    padding: 12px !important;
+  }
+  
+  .complaint-details-section {
+    max-height: none !important;
+    padding: 16px !important;
+  }
+
+  .complaint-info-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .global-header {
+    flex-direction: column !important;
+    gap: 12px !important;
+    padding: 16px 12px !important;
+    text-align: center !important;
+  }
+
+  .header-actions {
+    width: 100% !important;
+    justify-content: center !important;
+    gap: 8px !important;
+  }
+}
