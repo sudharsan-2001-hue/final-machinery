@@ -377,15 +377,13 @@ function CustomerComplaints() {
                       <h4>Your Recorded Voice Message</h4>
                       <audio
                         key={selectedComplaint.CustomerVoiceUrl}
+                        src={api.getAudioUrl(selectedComplaint.CustomerVoiceUrl)}
                         controls
                         className="audio-player"
                         style={{ width: '100%', marginTop: '5px' }}
                         onError={(e) => console.error("Customer audio playback error:", e)}
                         onLoadStart={() => console.log("Customer audio loading:", selectedComplaint.CustomerVoiceUrl)}
                       >
-                        <source src={api.getAudioUrl(selectedComplaint.CustomerVoiceUrl)} type="audio/webm" />
-                        <source src={api.getAudioUrl(selectedComplaint.CustomerVoiceUrl)} type="audio/mp3" />
-                        <source src={api.getAudioUrl(selectedComplaint.CustomerVoiceUrl)} type="audio/wav" />
                         Your browser does not support the audio element.
                       </audio>
                     </div>
@@ -396,15 +394,13 @@ function CustomerComplaints() {
                       <h4>Admin Recorded Voice Reply</h4>
                       <audio
                         key={selectedComplaint.VoiceReplyUrl}
+                        src={api.getAudioUrl(selectedComplaint.VoiceReplyUrl)}
                         controls
                         className="audio-player"
                         style={{ width: '100%', marginTop: '5px' }}
                         onError={(e) => console.error("Audio playback error:", e)}
                         onLoadStart={() => console.log("Audio loading:", selectedComplaint.VoiceReplyUrl)}
                       >
-                        <source src={api.getAudioUrl(selectedComplaint.VoiceReplyUrl)} type="audio/webm" />
-                        <source src={api.getAudioUrl(selectedComplaint.VoiceReplyUrl)} type="audio/mp3" />
-                        <source src={api.getAudioUrl(selectedComplaint.VoiceReplyUrl)} type="audio/wav" />
                         Your browser does not support the audio element.
                       </audio>
                     </div>
