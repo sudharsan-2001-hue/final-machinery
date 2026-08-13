@@ -199,9 +199,17 @@
   align-items: flex-end;
 }
 
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 15px 0;
+}
+
 .calc-row {
   display: flex;
-  width: 320px;
+  width: 100%;
+  max-width: 320px;
   justify-content: space-between;
   font-size: 13.5px;
   color: #cbd5e1;
@@ -324,6 +332,9 @@
 }
 
 @media (max-width: 600px) {
+  .invoice-sheet {
+    padding: 16px !important;
+  }
   .invoice-billing-row {
     grid-template-columns: 1fr;
     gap: 20px;
@@ -333,9 +344,25 @@
   }
   .order-actions-row {
     flex-direction: column;
+    gap: 12px;
   }
   .order-home-btn, .order-download-btn {
     width: 100%;
     justify-content: center;
+  }
+  .success-heading {
+    font-size: 20px !important;
+  }
+  .invoice-items-table th, 
+  .invoice-items-table td {
+    padding: 12px 8px !important;
+    font-size: 12px !important;
+  }
+  .table-item-desc {
+    gap: 8px !important;
+  }
+  .table-item-img {
+    width: 40px !important;
+    height: 40px !important;
   }
 }
