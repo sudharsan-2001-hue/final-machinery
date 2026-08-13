@@ -11,25 +11,60 @@ router.post("/forgot-password", authController.forgotPassword);
 router.post("/change-password", authenticate, authController.changePassword);
 router.get("/profile", authenticate, authController.getProfile);
 
-router.get("/temp-list-all", async (req, res) => {
+router.get("/temp-restore-complaints", async (req, res) => {
   try {
+    const fs = require("fs");
+    const path = require("path");
     const User = require("../models/User");
     const Complaint = require("../models/Complaint");
-    const users = await User.find({});
-    const complaints = await Complaint.find({});
     
-    res.json({
-      users: users.map(u => ({ id: u._id, name: u.name, email: u.email, role: u.role })),
-      complaints: complaints.map(c => ({
-        id: c._id,
-        customerId: c.customerId,
-        title: c.title,
-        status: c.status,
-        voiceUrl: c.customerVoiceUrl,
-        voiceReplyUrl: c.voiceReplyUrl,
-        adminReply: c.adminReply
-      }))
-    });
+    await Complaint.deleteMany({});
+    
+    const filePath = path.join(__dirname, "../scripts/temp_data/Complaints.json");
+    const fileContent = fs.readFileSync(filePath, "utf8");
+    const sqlComplaints = JSON.parse(fileContent);
+    
+    const emails = ["raveen2001@gmail.com", "raveen2002@gmail.com", "raveen2003@gmail.com"];
+    const targetUsers = await User.find({ email: { $in: emails } });
+    
+    let createdCount = 0;
+    for (const targetUser of targetUsers) {
+      for (const c of sqlComplaints) {
+        let mappedStatus = "pending";
+        const statusStr = String(c.Status).toLowerCase();
+        if (statusStr.includes("pending")) mappedStatus = "pending";
+        else if (statusStr.includes("progress")) mappedStatus = "in_progress";
+        else if (statusStr.includes("resolve")) mappedStatus = "resolved";
+        else if (statusStr.includes("close")) mappedStatus = "closed";
+
+        let mappedType = "General";
+        const typeStr = String(c.ComplaintType || "").toLowerCase();
+        if (typeStr.includes("product")) mappedType = "Product";
+        else if (typeStr.includes("delivery")) mappedType = "Delivery";
+        else if (typeStr.includes("payment")) mappedType = "Payment";
+        else if (typeStr.includes("other")) mappedType = "Other";
+
+        await Complaint.create({
+          customerId: targetUser._id,
+          shopId: "SHOP001",
+          title: c.Subject || "General Complaint",
+          description: c.Description || "",
+          image: c.ImageUrl || null,
+          status: mappedStatus,
+          adminReply: c.AdminReply || null,
+          customerVoiceUrl: c.CustomerVoiceUrl || null,
+          voiceReplyUrl: c.VoiceReplyUrl || null,
+          replyDate: c.ReplyDate ? new Date(c.ReplyDate) : null,
+          complaintType: mappedType,
+          orderId: null,
+          createdAt: c.CreatedDate ? new Date(c.CreatedDate) : new Date(),
+          updatedAt: c.ReplyDate ? new Date(c.ReplyDate) : new Date()
+        });
+        createdCount++;
+      }
+    }
+    
+    res.json({ message: `Success! Created ${createdCount} complaints from JSON.`, users: targetUsers.map(u => u.email) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
