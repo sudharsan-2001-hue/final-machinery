@@ -105,23 +105,22 @@
 
   .phone-contact-icon,
   .email-contact-icon,
-  .delivery-icon {
-    display: block !important;
-    width: 0 !important;
-    height: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
+  .delivery-icon,
+  .complaint-icon {
+    display: flex !important;
     position: static !important;
+    padding: 8px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
   }
 
   .phone-contact-icon > svg,
   .email-contact-icon > svg,
-  .delivery-icon > svg {
-    display: none !important;
-  }
-
-  .complaint-icon {
-    display: none;
+  .delivery-icon > svg,
+  .complaint-icon-svg {
+    display: block !important;
+    width: 24px !important;
+    height: 24px !important;
   }
 }
 
