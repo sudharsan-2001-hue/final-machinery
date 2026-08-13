@@ -491,7 +491,7 @@ function AdminComplaints() {
                         Customer Voice Message
                       </h4>
                       <audio
-                        key={selectedComplaint.CustomerVoiceUrl}
+                        key={selectedComplaint.ComplaintID}
                         src={api.getAudioUrl(selectedComplaint.CustomerVoiceUrl)}
                         controls
                         className="audio-player"
@@ -629,7 +629,7 @@ function AdminComplaints() {
                     <div className="voice-reply-section">
                       <h4>Voice Reply Playback</h4>
                       <audio
-                        key={selectedComplaint.VoiceReplyUrl}
+                        key={`${selectedComplaint.ComplaintID}-reply`}
                         src={api.getAudioUrl(selectedComplaint.VoiceReplyUrl)}
                         controls
                         className="audio-player"

@@ -376,7 +376,7 @@ function CustomerComplaints() {
                     <div className="voice-reply-section" style={{ marginTop: '15px' }}>
                       <h4>Your Recorded Voice Message</h4>
                       <audio
-                        key={selectedComplaint.CustomerVoiceUrl}
+                        key={selectedComplaint.ComplaintID}
                         src={api.getAudioUrl(selectedComplaint.CustomerVoiceUrl)}
                         controls
                         className="audio-player"
@@ -393,7 +393,7 @@ function CustomerComplaints() {
                     <div className="voice-reply-section" style={{ marginTop: '15px' }}>
                       <h4>Admin Recorded Voice Reply</h4>
                       <audio
-                        key={selectedComplaint.VoiceReplyUrl}
+                        key={`${selectedComplaint.ComplaintID}-reply`}
                         src={api.getAudioUrl(selectedComplaint.VoiceReplyUrl)}
                         controls
                         className="audio-player"
