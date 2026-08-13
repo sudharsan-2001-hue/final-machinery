@@ -383,6 +383,7 @@ function CustomerComplaints() {
                         style={{ width: '100%', marginTop: '5px' }}
                         onError={(e) => console.error("Customer audio playback error:", e)}
                         onLoadStart={() => console.log("Customer audio loading:", selectedComplaint.CustomerVoiceUrl)}
+                        onLoadedMetadata={(e) => { e.target.currentTime = 0; }}
                       >
                         Your browser does not support the audio element.
                       </audio>
@@ -400,6 +401,7 @@ function CustomerComplaints() {
                         style={{ width: '100%', marginTop: '5px' }}
                         onError={(e) => console.error("Audio playback error:", e)}
                         onLoadStart={() => console.log("Audio loading:", selectedComplaint.VoiceReplyUrl)}
+                        onLoadedMetadata={(e) => { e.target.currentTime = 0; }}
                       >
                         Your browser does not support the audio element.
                       </audio>

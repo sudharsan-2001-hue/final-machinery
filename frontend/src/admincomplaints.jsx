@@ -498,6 +498,7 @@ function AdminComplaints() {
                         style={{ width: '100%', marginTop: '5px' }}
                         onError={(e) => console.error("Customer audio error:", e)}
                         onLoadStart={() => console.log("Customer audio loading:", selectedComplaint.CustomerVoiceUrl)}
+                        onLoadedMetadata={(e) => { e.target.currentTime = 0; }}
                       >
                         Your browser does not support the audio element.
                       </audio>
@@ -635,6 +636,7 @@ function AdminComplaints() {
                         className="audio-player"
                         onError={(e) => console.error("Voice reply audio error:", e)}
                         onLoadStart={() => console.log("Voice reply audio loading:", selectedComplaint.VoiceReplyUrl)}
+                        onLoadedMetadata={(e) => { e.target.currentTime = 0; }}
                       >
                         Your browser does not support the audio element.
                       </audio>
