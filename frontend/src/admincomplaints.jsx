@@ -491,6 +491,7 @@ function AdminComplaints() {
                         Customer Voice Message
                       </h4>
                       <audio
+                        key={selectedComplaint.CustomerVoiceUrl}
                         controls
                         className="audio-player"
                         style={{ width: '100%', marginTop: '5px' }}
@@ -630,6 +631,7 @@ function AdminComplaints() {
                     <div className="voice-reply-section">
                       <h4>Voice Reply Playback</h4>
                       <audio
+                        key={selectedComplaint.VoiceReplyUrl}
                         controls
                         className="audio-player"
                         onError={(e) => console.error("Voice reply audio error:", e)}
