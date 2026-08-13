@@ -1154,7 +1154,8 @@
 
   .phone-dropdown,
   .email-dropdown,
-  .delivery-dropdown {
+  .delivery-dropdown,
+  .mobile-menu-dropdown {
     position: absolute !important;
     top: 100% !important;
     left: 16px !important;
