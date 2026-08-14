@@ -98,17 +98,17 @@ function OrderTracking() {
   };
 
   const trackSteps = [
-    { key: "pending", label: "Order Placed" },
     { key: "confirmed", label: "Confirmed" },
     { key: "preparing", label: "Packed" },
     { key: "shipped", label: "Shipped" },
     { key: "delivered", label: "Delivered" },
+    { key: "cancelled", label: "Cancelled" },
   ];
 
   const getCurrentStep = (status) => {
     const s = (status || "").toLowerCase();
     const stepIndex = trackSteps.findIndex((step) => step.key === s);
-    return stepIndex >= 0 ? stepIndex : 0;
+    return stepIndex;
   };
 
   const getStatusColor = (status) => {
@@ -204,11 +204,11 @@ function OrderTracking() {
                   </div>
                 </div>
 
-                <div className="order-timeline">
+                <div className={`order-timeline ${order.status?.toLowerCase() === "cancelled" ? "is-cancelled" : ""}`}>
                   {trackSteps.map((step, index) => {
                     const currentStep = getCurrentStep(order.status);
-                    const isCompleted = index <= currentStep;
-                    const isCurrent = index === currentStep;
+                    const isCompleted = currentStep >= 0 && index <= currentStep;
+                    const isCurrent = currentStep >= 0 && index === currentStep;
 
                     return (
                       <div key={step.key} className={`timeline-step ${isCompleted ? "completed" : ""} ${isCurrent ? "current" : ""}`}>
@@ -220,11 +220,15 @@ function OrderTracking() {
                 </div>
 
                 <div className="order-actions">
-                  {order.status === "Pending" && (
+                  {order.status?.toLowerCase() === "cancelled" ? (
+                    <button className="catalog-add-cart-btn btn-cancelled" disabled style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', textDecoration: 'line-through', cursor: 'not-allowed', padding: '12px 24px', borderRadius: '12px', fontWeight: '600' }}>
+                      Cancelled
+                    </button>
+                  ) : (order.status?.toLowerCase() === "pending" && (
                     <button className="catalog-add-cart-btn btn-grad-cancel" onClick={() => handleCancelOrder(order)}>
                       Cancel Order
                     </button>
-                  )}
+                  ))}
                   <button className="catalog-add-cart-btn btn-grad-secondary" onClick={() => handlePrintInvoice(order)}>
                     View Invoice
                   </button>
