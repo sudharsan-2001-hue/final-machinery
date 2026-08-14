@@ -194,25 +194,13 @@ async function uploadCustomerVoice(req, res) {
     }
 
     const audioFile = req.files.audio;
-    const uploadsDir = path.join(__dirname, '../uploads/customer-voices');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
+    const base64Data = audioFile.data.toString('base64');
+    const mimeType = audioFile.mimetype || 'audio/webm';
+    const voiceUrl = `data:${mimeType};base64,${base64Data}`;
 
-    const filename = `customer_complaint_${req.user.id}_${Date.now()}.webm`;
-    const filePath = path.join(uploadsDir, filename);
-    const voiceUrl = `/uploads/customer-voices/${filename}`;
-
-    audioFile.mv(filePath, async (err) => {
-      if (err) {
-        console.error("Error saving customer audio file:", err);
-        return res.status(500).json({ message: "Failed to save audio file." });
-      }
-
-      res.json({ 
-        message: "Customer voice uploaded successfully.",
-        voiceUrl: voiceUrl
-      });
+    res.json({ 
+      message: "Customer voice uploaded successfully.",
+      voiceUrl: voiceUrl
     });
   } catch (err) {
     console.error("Upload customer voice error:", err.message);
@@ -289,56 +277,30 @@ async function getShopComplaints(req, res) {
 
 async function uploadVoiceReply(req, res) {
   try {
-    const fs = require('fs');
-    const path = require('path');
-    
-    console.log("Upload voice reply request received");
-    console.log("Files:", req.files);
-    console.log("Body:", req.body);
-    
     if (!req.files || !req.files.audio) {
-      console.log("No audio file in request");
       return res.status(400).json({ message: "Audio file is required." });
     }
 
     const audioFile = req.files.audio;
     const complaintId = req.body.complaintId;
 
-    const uploadsDir = path.join(__dirname, '../uploads/voice-replies');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-      console.log("Created voice-replies directory");
+    const base64Data = audioFile.data.toString('base64');
+    const mimeType = audioFile.mimetype || 'audio/webm';
+    const voiceUrl = `data:${mimeType};base64,${base64Data}`;
+
+    try {
+      // Update complaint with voice URL
+      await Complaint.findByIdAndUpdate(complaintId, { voiceReplyUrl: voiceUrl });
+      console.log("Voice URL updated in database as base64");
+      
+      res.json({ 
+        message: "Voice reply uploaded successfully.",
+        voiceUrl: voiceUrl
+      });
+    } catch (dbErr) {
+      console.error("Error updating complaint:", dbErr);
+      res.status(500).json({ message: "Failed to update complaint with voice URL." });
     }
-
-    const filename = `complaint_${complaintId}_${Date.now()}.webm`;
-    const filePath = path.join(uploadsDir, filename);
-    const voiceUrl = `/uploads/voice-replies/${filename}`;
-
-    console.log("Saving audio file to:", filePath);
-    console.log("Voice URL:", voiceUrl);
-
-    audioFile.mv(filePath, async (err) => {
-      if (err) {
-        console.error("Error saving audio file:", err);
-        return res.status(500).json({ message: "Failed to save audio file." });
-      }
-
-      console.log("Audio file saved successfully");
-
-      try {
-        // Update complaint with voice URL
-        await Complaint.findByIdAndUpdate(complaintId, { voiceReplyUrl: voiceUrl });
-        console.log("Voice URL updated in database:", voiceUrl);
-        
-        res.json({ 
-          message: "Voice reply uploaded successfully.",
-          voiceUrl: voiceUrl
-        });
-      } catch (dbErr) {
-        console.error("Error updating complaint:", dbErr);
-        res.status(500).json({ message: "Failed to update complaint with voice URL." });
-      }
-    });
   } catch (err) {
     console.error("Upload voice reply error:", err.message);
     res.status(500).json({ message: "Failed to upload voice reply." });
@@ -405,6 +367,7 @@ async function generateVoiceForComplaint(req, res) {
 
     // Use Google Translate TTS API directly (no gtts dependency)
     let voiceGenerated = false;
+    let finalVoiceUrl = null;
     try {
       const langCode = language === 'tamil' ? 'ta' : 'en';
       const encodedText = encodeURIComponent(text);
@@ -417,7 +380,6 @@ async function generateVoiceForComplaint(req, res) {
             response.pipe(file);
             file.on('finish', () => {
               file.close();
-              console.log("Voice file generated successfully:", voiceUrl);
               voiceGenerated = true;
               resolve();
             });
@@ -434,6 +396,13 @@ async function generateVoiceForComplaint(req, res) {
           reject(err);
         });
       });
+
+      if (voiceGenerated && fs.existsSync(filePath)) {
+        const audioData = fs.readFileSync(filePath).toString('base64');
+        finalVoiceUrl = `data:audio/mp3;base64,${audioData}`;
+        fs.unlinkSync(filePath); // Clean up the file immediately
+        console.log("Voice generated and converted to base64 successfully");
+      }
     } catch (voiceErr) {
       console.error("Voice generation failed:", voiceErr.message);
       // Fallback: save text reply without voice
@@ -445,7 +414,7 @@ async function generateVoiceForComplaint(req, res) {
       id,
       {
         adminReply: text,
-        voiceReplyUrl: voiceGenerated ? voiceUrl : null,
+        voiceReplyUrl: finalVoiceUrl,
         replyDate: new Date(),
         status: 'resolved'
       },
