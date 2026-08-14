@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, getProductImage, clearSession } from "./api";
+import { OrderHistoryCardSkeleton } from "./components/SkeletonLoader";
 import "./order.css";
 
 function OrderTracking() {
@@ -97,28 +98,30 @@ function OrderTracking() {
   };
 
   const trackSteps = [
-    { key: "Pending", label: "Order Placed" },
-    { key: "Confirmed", label: "Confirmed" },
-    { key: "Preparing", label: "Packed" },
-    { key: "Shipped", label: "Shipped" },
-    { key: "Delivered", label: "Delivered" },
+    { key: "pending", label: "Order Placed" },
+    { key: "confirmed", label: "Confirmed" },
+    { key: "preparing", label: "Packed" },
+    { key: "shipped", label: "Shipped" },
+    { key: "delivered", label: "Delivered" },
   ];
 
   const getCurrentStep = (status) => {
-    const stepIndex = trackSteps.findIndex((step) => step.key === status);
+    const s = (status || "").toLowerCase();
+    const stepIndex = trackSteps.findIndex((step) => step.key === s);
     return stepIndex >= 0 ? stepIndex : 0;
   };
 
   const getStatusColor = (status) => {
+    const s = (status || "").toLowerCase();
     const colors = {
-      "Pending": "#f59e0b",
-      "Confirmed": "#3b82f6",
-      "Preparing": "#8b5cf6",
-      "Shipped": "#06b6d4",
-      "Delivered": "#10b981",
-      "Cancelled": "#ef4444"
+      "pending": "#f59e0b",
+      "confirmed": "#3b82f6",
+      "preparing": "#8b5cf6",
+      "shipped": "#06b6d4",
+      "delivered": "#10b981",
+      "cancelled": "#ef4444"
     };
-    return colors[status] || "#6b7280";
+    return colors[s] || "#6b7280";
   };
 
   if (!currentUser) return null;
@@ -154,8 +157,10 @@ function OrderTracking() {
 
       <main className="order-main animate-slide">
         {loading ? (
-          <div className="no-results-card glass-card-base">
-            <p>Loading orders...</p>
+          <div className="orders-list">
+            {[...Array(3)].map((_, i) => (
+              <OrderHistoryCardSkeleton key={i} />
+            ))}
           </div>
         ) : orders.length === 0 ? (
           <div className="no-results-card glass-card-base">

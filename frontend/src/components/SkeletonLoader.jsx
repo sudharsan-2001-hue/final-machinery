@@ -78,4 +78,45 @@ export const FullPageSkeleton = () => (
   </div>
 );
 
+export const OrderHistoryCardSkeleton = () => (
+  <div className="order-card glass-card-base" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '20px', width: '100%', boxSizing: 'border-box' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '60%' }}>
+        <Skeleton style={{ height: '24px', width: '80%' }} />
+        <Skeleton style={{ height: '16px', width: '50%' }} />
+      </div>
+      <Skeleton style={{ height: '28px', width: '100px', borderRadius: '14px' }} />
+    </div>
+
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Skeleton style={{ height: '16px', width: '100px' }} />
+        <Skeleton style={{ height: '16px', width: '80px' }} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Skeleton style={{ height: '16px', width: '120px' }} />
+        <Skeleton style={{ height: '16px', width: '60px' }} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Skeleton style={{ height: '16px', width: '110px' }} />
+        <Skeleton style={{ height: '16px', width: '70px' }} />
+      </div>
+    </div>
+
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '10px 0', padding: '0 10px' }}>
+      {[...Array(5)].map((_, idx) => (
+        <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', width: '15%' }}>
+          <Skeleton style={{ height: '20px', width: '20px', borderRadius: '50%' }} />
+          <Skeleton style={{ height: '12px', width: '100%' }} />
+        </div>
+      ))}
+    </div>
+
+    <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+      <Skeleton style={{ height: '40px', flex: 1, borderRadius: '8px' }} />
+      <Skeleton style={{ height: '40px', flex: 1, borderRadius: '8px' }} />
+    </div>
+  </div>
+);
+
 export default Skeleton;
