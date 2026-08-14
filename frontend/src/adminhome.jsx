@@ -242,7 +242,7 @@ function AdminHome() {
         <header className="global-header glass-card-base animate-fade">
           <div className="header-logo" onClick={() => navigate("/adminhome")}>
             <img src="/logo.jpeg" alt="MachMart Logo" className="header-logo-image" />
-            <span className="header-brand-text">Sudharsan Cottage Machinery</span>
+            <span className="header-brand-text">MachMart</span>
           </div>
           <div className="header-title-container">
             <h2 className="header-page-title admin-title-badge">Admin Dashboard</h2>
@@ -276,7 +276,7 @@ function AdminHome() {
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
-            <span className="header-brand-text">Sudharsan Cottage Machinery</span>
+            <span className="header-brand-text">MachMart</span>
           </div>
           <div className="header-title-container">
             <h2 className="header-page-title admin-title-badge">Admin Dashboard</h2>
@@ -298,7 +298,7 @@ function AdminHome() {
       <header className="global-header glass-card-base animate-fade">
         <div className="header-logo" onClick={() => navigate("/adminhome")}>
           <img src="/logo.jpeg" alt="MachMart Logo" className="header-logo-image" />
-          <span className="header-brand-text">Sudharsan Cottage Machinery</span>
+          <span className="header-brand-text">MachMart</span>
         </div>
         <div className="header-title-container">
           <h2 className="header-page-title admin-title-badge">Admin Dashboard</h2>
@@ -658,7 +658,7 @@ function AdminHome() {
       <footer className="global-footer glass-card-base animate-fade">
         <div className="footer-top">
           <div className="footer-brand">
-            <h4>Sudharsan Cottage Machinery</h4>
+            <h4>MachMart</h4>
             <p>Administrative Control Dashboard Panel.</p>
           </div>
           <div className="footer-links">
@@ -667,9 +667,13 @@ function AdminHome() {
             <span className="footer-link" onClick={() => navigate("/availablestock")}>Stock Table</span>
           </div>
         </div>
-        <div className="footer-bottom">
-          <p>&copy; 2026 Sudharsan Cottage Machinery. All rights reserved.</p>
+        <div className="footer-bottom" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+          <p>&copy; 2026 MachMart. All rights reserved.</p>
           <p>ISO 9001:2015 Certified System</p>
+        
+          <p style={{ fontSize: '11px', marginTop: '6px', color: '#888' }}>
+            Supported by <a href="https://www.coderead.in" target="_blank" rel="noopener noreferrer" style={{ color: '#ff9800', textDecoration: 'underline' }}>CodeRead Academy</a>
+          </p>
         </div>
       </footer>
     </div>

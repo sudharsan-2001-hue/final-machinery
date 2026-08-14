@@ -109,7 +109,7 @@ function Buy() {
       <header className="global-header glass-card-base animate-fade">
         <div className="header-logo" onClick={() => navigate("/home")}>
           <img src="/logo.jpeg" alt="MachMart Logo" className="header-logo-image" />
-          <span className="header-brand-text">Sudharsan Cottage Machinery</span>
+          <span className="header-brand-text">MachMart</span>
         </div>
         <div className="header-title-container">
           <h2 className="header-page-title">Configure Order</h2>
@@ -238,7 +238,7 @@ function Buy() {
       <footer className="global-footer glass-card-base animate-fade">
         <div className="footer-top">
           <div className="footer-brand">
-            <h4>Sudharsan Cottage Machinery</h4>
+            <h4>MachMart</h4>
             <p>High-quality manufacturing, packaging, and processing machinery for cottage industries.</p>
           </div>
           <div className="footer-links">
@@ -246,9 +246,13 @@ function Buy() {
             <span className="footer-link" onClick={() => navigate("/price")}>Products</span>
           </div>
         </div>
-        <div className="footer-bottom">
-          <p>&copy; 2026 Sudharsan Cottage Machinery. All rights reserved.</p>
+        <div className="footer-bottom" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+          <p>&copy; 2026 MachMart. All rights reserved.</p>
           <p>ISO 9001:2015 Certified Industrial Partner</p>
+        
+          <p style={{ fontSize: '11px', marginTop: '6px', color: '#888' }}>
+            Supported by <a href="https://www.coderead.in" target="_blank" rel="noopener noreferrer" style={{ color: '#ff9800', textDecoration: 'underline' }}>CodeRead Academy</a>
+          </p>
         </div>
       </footer>
     </div>

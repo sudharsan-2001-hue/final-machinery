@@ -143,7 +143,7 @@ function Payment() {
         key: razorpayOrder.key,
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency,
-        name: "Sudharsan Cottage Machinery",
+        name: "MachMart",
         description: "Machinery Purchase",
         order_id: razorpayOrder.orderId,
         prefill: {
@@ -295,7 +295,7 @@ function Payment() {
       <header className="global-header glass-card-base animate-fade">
         <div className="header-logo" onClick={() => navigate("/home")}>
           <img src="/logo.jpeg" alt="MachMart Logo" className="header-logo-image" />
-          <span className="header-brand-text">Sudharsan Cottage Machinery</span>
+          <span className="header-brand-text">MachMart</span>
         </div>
         <div className="header-title-container">
           <h2 className="header-page-title">Secure Checkout</h2>
@@ -416,8 +416,12 @@ function Payment() {
       </main>
 
       <footer className="global-footer glass-card-base animate-fade">
-        <div className="footer-bottom">
-          <p>&copy; 2026 Sudharsan Cottage Machinery. All rights reserved.</p>
+        <div className="footer-bottom" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+          <p>&copy; 2026 MachMart. All rights reserved.</p>
+        
+          <p style={{ fontSize: '11px', marginTop: '6px', color: '#888' }}>
+            Supported by <a href="https://www.coderead.in" target="_blank" rel="noopener noreferrer" style={{ color: '#ff9800', textDecoration: 'underline' }}>CodeRead Academy</a>
+          </p>
         </div>
       </footer>
     </div>

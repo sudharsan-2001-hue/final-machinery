@@ -65,7 +65,7 @@ function ShopOrders() {
       <header className="global-header glass-card-base animate-fade">
         <div className="header-logo" onClick={() => navigate("/adminhome")}>
           <img src="/logo.jpeg" alt="MachMart Logo" className="header-logo-image" />
-          <span className="header-brand-text">Sudharsan Cottage Machinery</span>
+          <span className="header-brand-text">MachMart</span>
         </div>
         <div className="header-title-container">
           <h2 className="header-page-title">Shop Orders</h2>

@@ -56,7 +56,7 @@ function App() {
             <div className="splash-logo-wrapper">
               <img src="/logo.jpeg" alt="Sudharsan Logo" className="splash-logo" />
             </div>
-            <h1 className="splash-brand-title">Sudharsan Cottage Machinery</h1>
+            <h1 className="splash-brand-title">MachMart</h1>
             <p className="splash-brand-subtitle">Quality & Innovation in Machinery</p>
           </div>
           <div className="splash-footer">

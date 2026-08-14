@@ -68,7 +68,7 @@ function ProductUpload() {
       <header className="global-header">
         <div className="header-logo" onClick={() => navigate("/seller-dashboard")}>
           <img src="/logo.jpeg" alt="MachMart Logo" className="header-logo-image" />
-          <span className="header-brand-text">Sudharsan Cottage Machinery</span>
+          <span className="header-brand-text">MachMart</span>
         </div>
         <div className="header-title-container">
           <h2 className="header-page-title">Upload Product</h2>

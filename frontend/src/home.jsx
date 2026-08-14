@@ -95,7 +95,7 @@ function Home() {
     e.preventDefault();
     try {
       await api.sendContactMessage(contactForm.name, contactForm.email, contactForm.message);
-      alert("Thank you! Your message has been sent to Sudharsan Cottage Machinery. We will get back to you shortly.");
+      alert("Thank you! Your message has been sent to MachMart. We will get back to you shortly.");
       setContactForm({ name: "", email: "", message: "" });
       setShowContact(false);
     } catch (err) {
@@ -164,7 +164,7 @@ function Home() {
       <header className="global-header glass-card-base animate-fade">
         <div className="header-logo" onClick={() => navigate("/home")}>
           <img src="/logo.jpeg" alt="MachMart Logo" className="header-logo-image" />
-          <span className="header-brand-text">Sudharsan Cottage Machinery</span>
+          <span className="header-brand-text">MachMart</span>
         </div>
         <div className="header-title-container">
           <h2 className="header-page-title">Home Dashboard</h2>
@@ -197,7 +197,7 @@ function Home() {
             {showPhoneDropdown && (
               <div className="phone-dropdown glass-card-base">
                 <div className="phone-dropdown-header">
-                  <strong>Sudharsan Cottage Machinery</strong>
+                  <strong>MachMart</strong>
                 </div>
                 <div className="phone-dropdown-content">
                   <a href="tel:+917397135792" className="phone-number-link">
@@ -223,7 +223,7 @@ function Home() {
             {showEmailDropdown && (
               <div className="email-dropdown glass-card-base">
                 <div className="email-dropdown-header">
-                  <strong>Sudharsan Cottage Machinery</strong>
+                  <strong>MachMart</strong>
                 </div>
                 <div className="email-dropdown-content">
                   <a href="mailto:27gsudharsan@gmail.com" className="email-link">
@@ -534,7 +534,7 @@ function Home() {
       <footer className="global-footer glass-card-base animate-fade">
         <div className="footer-top">
           <div className="footer-brand">
-            <h4>Sudharsan Cottage Machinery</h4>
+            <h4>MachMart</h4>
             <p>High-quality manufacturing, packaging, and processing machinery for cottage industries.</p>
             <a href="tel:+917397135792" className="footer-contact-link">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="footer-phone-icon">
@@ -549,9 +549,13 @@ function Home() {
             <span className="footer-link" onClick={() => setShowContact(true)}>Contact</span>
           </div>
         </div>
-        <div className="footer-bottom">
-          <p>&copy; 2026 Sudharsan Cottage Machinery. All rights reserved.</p>
+        <div className="footer-bottom" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+          <p>&copy; 2026 MachMart. All rights reserved.</p>
           <p>ISO 9001:2015 Certified Industrial Partner</p>
+        
+          <p style={{ fontSize: '11px', marginTop: '6px', color: '#888' }}>
+            Supported by <a href="https://www.coderead.in" target="_blank" rel="noopener noreferrer" style={{ color: '#ff9800', textDecoration: 'underline' }}>CodeRead Academy</a>
+          </p>
         </div>
       </footer>
 
