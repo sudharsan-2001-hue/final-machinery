@@ -156,7 +156,7 @@ async function createProduct(req, res) {
     const status = Number(stock) > 0 ? "active" : "out_of_stock";
 
     const product = await Product.create({
-      shopId: shopId || "SHOP001",
+      shopId: shopId || req.user?.shopId || "SHOP001",
       categoryId: categoryDoc._id,
       productName: name.trim(),
       description: description.trim(),
@@ -175,7 +175,7 @@ async function createProduct(req, res) {
     // Create stock entry
     await Stock.create({
       productId: product._id,
-      shopId: shopId || "SHOP001",
+      shopId: shopId || req.user?.shopId || "SHOP001",
       availableStock: Number(stock),
       reservedStock: 0,
       minimumStock: 0,

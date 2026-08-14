@@ -207,6 +207,7 @@ async function getAllOrders(req, res) {
         email: order.customerId?.email,
         mobile: order.customerId?.mobile
       },
+      deliveryAddress: order.deliveryAddress,
       products: order.products.map(p => ({
         productName: p.productId?.productName,
         quantity: p.quantity
