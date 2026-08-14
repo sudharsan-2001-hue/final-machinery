@@ -25,6 +25,7 @@ function ShopOrders() {
       try {
         const allOrders = await api.getOrders();
         setOrders(allOrders);
+        localStorage.setItem("scm_last_seen_orders_count", allOrders.length.toString());
       } catch (err) {
         console.error("Error loading orders:", err);
       } finally {
@@ -42,6 +43,7 @@ function ShopOrders() {
       // Refresh orders
       const allOrders = await api.getOrders();
       setOrders(allOrders);
+      localStorage.setItem("scm_last_seen_orders_count", allOrders.length.toString());
 
       // Trigger dashboard refresh by updating localStorage
       localStorage.setItem('scm_dashboard_refresh', Date.now().toString());

@@ -26,6 +26,7 @@ function AdminHome() {
   const [previousMessageCount, setPreviousMessageCount] = useState(0);
   const [notification, setNotification] = useState(null);
   const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
+  const [hasNewOrders, setHasNewOrders] = useState(false);
 
   const refreshDashboard = () => {
     setLoading(true);
@@ -79,6 +80,20 @@ function AdminHome() {
         // Backend now filters orders by shopId for shop admins
         const orders = await api.getOrders();
         console.log("Orders API response:", orders);
+
+        // Check for new orders notification
+        const lastSeenCountStr = localStorage.getItem("scm_last_seen_orders_count");
+        if (lastSeenCountStr !== null) {
+          const lastSeenCount = parseInt(lastSeenCountStr, 10);
+          if (orders.length > lastSeenCount) {
+            setHasNewOrders(true);
+          } else {
+            setHasNewOrders(false);
+          }
+        } else {
+          localStorage.setItem("scm_last_seen_orders_count", orders.length.toString());
+          setHasNewOrders(false);
+        }
 
         // Backend now filters products by shopId for shop admins via shopId query param
         let products;
@@ -226,10 +241,7 @@ function AdminHome() {
       <div className="admin-wrapper">
         <header className="global-header glass-card-base animate-fade">
           <div className="header-logo" onClick={() => navigate("/adminhome")}>
-            <svg className="header-logo-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
+            <img src="/logo.jpeg" alt="MachMart Logo" className="header-logo-image" />
             <span className="header-brand-text">Sudharsan Cottage Machinery</span>
           </div>
           <div className="header-title-container">
@@ -237,10 +249,19 @@ function AdminHome() {
           </div>
         </header>
         <main className="admin-main animate-slide">
-          <div className="loading-spinner">
-            <div className="spinner"></div>
-            <p>Loading dashboard data...</p>
-          </div>
+          <section className="admin-kpi-grid">
+            {[...Array(6)].map((_, i) => (
+              <DashboardCardSkeleton key={i} />
+            ))}
+          </section>
+          <section style={{ marginTop: '30px' }} className="recent-orders-section glass-card-base">
+            <h3 className="section-block-title" style={{ width: '150px', height: '24px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '4px', marginBottom: '20px' }}></h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {[...Array(3)].map((_, i) => (
+                <OrderRowSkeleton key={i} />
+              ))}
+            </div>
+          </section>
         </main>
       </div>
     );
@@ -394,7 +415,8 @@ function AdminHome() {
             </div>
           </div>
 
-          <div className="kpi-card glass-card-base animate-scale">
+          <div className="kpi-card glass-card-base animate-scale" style={{ position: 'relative' }}>
+            {hasNewOrders && <span className="new-order-dot"></span>}
             <div className="kpi-icon-box orange">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="kpi-svg">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -493,7 +515,8 @@ function AdminHome() {
               <span className="action-link-arrow">Access →</span>
             </div>
 
-            <div className="action-tile glass-card-base" onClick={() => navigate("/orders")}>
+            <div className="action-tile glass-card-base" onClick={() => navigate("/orders")} style={{ position: 'relative' }}>
+              {hasNewOrders && <span className="new-order-dot" style={{ top: '20px', right: '20px' }}></span>}
               <div className="action-icon-circle orange">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="action-svg">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
