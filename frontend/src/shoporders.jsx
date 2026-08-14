@@ -124,13 +124,20 @@ function ShopOrders() {
                     <tr key={ord._id || ord.orderId}>
                       <td><span className="order-id-badge">{ord.orderNumber || 'N/A'}</span></td>
                       <td>
-                        <div className="customer-info">
-                          <strong>{ord.customerId?.name || ord.customer?.name || 'N/A'}</strong>
-                          <p>{ord.customerId?.mobile || ord.customer?.phone || 'N/A'}</p>
+                        <div className="customer-info" style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+                          <strong style={{ color: '#fff' }}>{ord.customer?.name || ord.customerId?.name || 'N/A'}</strong>
+                          <span style={{ fontSize: '13px', color: '#ff9800' }}>📞 {ord.customer?.mobile || ord.customerId?.mobile || ord.customer?.phone || 'N/A'}</span>
+                          {ord.deliveryAddress && (
+                            <span className="customer-address" style={{ fontSize: '11px', color: '#aaa', marginTop: '2px', maxWidth: '250px', whiteSpace: 'normal', lineHeight: '1.4' }}>
+                              📍 {typeof ord.deliveryAddress === 'string' 
+                                ? ord.deliveryAddress 
+                                : [ord.deliveryAddress.address, ord.deliveryAddress.city, ord.deliveryAddress.district, ord.deliveryAddress.state, ord.deliveryAddress.pincode].filter(Boolean).join(', ')}
+                            </span>
+                          )}
                         </div>
                       </td>
-                      <td><strong>{ord.products?.[0]?.productId?.productName || 'N/A'}</strong></td>
-                      <td className="text-center">{ord.products?.[0]?.quantity || 1}</td>
+                      <td><strong>{ord.products?.map(p => p.productName).join(', ') || 'N/A'}</strong></td>
+                      <td className="text-center">{ord.products?.reduce((sum, p) => sum + (p.quantity || 0), 0) || 1}</td>
                       <td className="text-center text-green">₹{(ord.totalAmount || 0).toLocaleString("en-IN")}</td>
                       <td className="text-center">
                         <span className="payment-method-pill">{ord.paymentMethod || 'N/A'}</span>

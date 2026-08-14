@@ -45,7 +45,8 @@ function AvailableStock() {
 
   const fetchMachineryList = async () => {
     try {
-      const list = await api.getProducts();
+      const user = JSON.parse(localStorage.getItem("scm_currentUser"));
+      const list = await api.getProducts(user?.role === "shopadmin" ? user.shopId : undefined);
       setMachinery(list);
       setFilteredMachinery(list);
 
@@ -256,11 +257,12 @@ function AvailableStock() {
         <section className="stock-list-sheet glass-card-base">
           {currentItems.length > 0 ? (
             <div className="table-responsive">
-              <table className="stock-table">
+               <table className="stock-table">
                 <thead>
                   <tr>
                     <th>Image</th>
                     <th>Machine Model Name</th>
+                    {currentUser?.role === "admin" && <th>Shop</th>}
                     <th>Category</th>
                     <th className="text-center">Original Price</th>
                     <th className="text-center">Offer Price</th>
@@ -281,6 +283,13 @@ function AvailableStock() {
                           <p>{m.description.substring(0, 50)}...</p>
                         </div>
                       </td>
+                      {currentUser?.role === "admin" && (
+                        <td>
+                          <span className="shop-tag-style" style={{ padding: '4px 8px', borderRadius: '4px', backgroundColor: 'rgba(255, 152, 0, 0.1)', color: '#ff9800', border: '1px solid rgba(255, 152, 0, 0.2)', fontWeight: 'bold', fontSize: '12px' }}>
+                            {m.shopName || m.shopId}
+                          </span>
+                        </td>
+                      )}
                       <td><span className="category-tag-style">{m.category}</span></td>
                       <td className="text-center text-through">₹{m.originalPrice.toLocaleString("en-IN")}</td>
                       <td className="text-center text-green">₹{m.offerPrice.toLocaleString("en-IN")}</td>
