@@ -68,13 +68,12 @@ function ShopRegistration() {
     setLoading(true);
     try {
       const data = await api.registerShop(currentUser.shopId, shopName, formattedAddress, gstNumber, shopImage);
-      showToast("Shop registration successful!", "success");
+      showToast("Shop registration successful! Please log in to access your dashboard.", "success");
       
-      // Update user session with shopRegistered flag
-      const updatedUser = { ...currentUser, shopRegistered: true };
-      localStorage.setItem("scm_currentUser", JSON.stringify(updatedUser));
+      // Clear session so they have to log in again
+      clearSession();
       
-      navigate("/adminhome");
+      navigate("/");
     } catch (err) {
       setError(err.message || "Shop registration failed.");
     } finally {

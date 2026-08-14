@@ -249,7 +249,7 @@ export function clearSession() {
 export const api = {
   getAudioUrl(path) {
     if (!path) return "";
-    if (path.startsWith("http")) return path;
+    if (path.startsWith("http") || path.startsWith("data:")) return path;
     const rootUrl = API_BASE_URL.replace(/\/api$/, "");
     const cleanPath = path.startsWith("/") ? path : `/${path}`;
     return `${rootUrl}${cleanPath}`;

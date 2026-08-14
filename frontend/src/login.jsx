@@ -113,10 +113,7 @@ function Login() {
       setFormMode("login");
       setIdentifier(regEmail);
       setPassword(regPassword);
-      if (data.token && data.user) {
-        saveSession(data.user, data.token, false);
-        navigate("/home");
-      }
+
     } catch (err) {
       setError(err.message || "Registration failed.");
     } finally {
